@@ -33,3 +33,35 @@ def triangulate_regular_polygon(sides, radius, pos, size):
             vert_count += 1
         return {'indices': new_indices, 'vertices': new_vertices, 
             'vert_count': vert_count, 'ind_count': ind_count}
+
+
+def create_triangulated_polygon_model(
+    model_manager, sides, radius, area, name
+    ):
+    t = triangulate_regular_polygon(sides,radius, (0., 0.), area)
+    model_name = model_manager.load_model('vertex_format_2f4ub', 
+        t['vert_count'], t['ind_count'], name, 
+        indices=t['indices'], vertices=t['vertices'])
+    return model_name
+
+def generate_and_save_various_models(
+    model_manager, radii=[], areas=[], sides=40
+    ):
+for radius in radii:
+    for area in areas:
+        name = 'circle_' + str(int(radius)) + '_' + area
+        model_name = create_triangulated_polygon_model(
+            model_manager, sides, radius, area, name
+            )
+        model_manager.pickle_model(model_name, 'triangulated_models')
+
+def pregenerate_models(model_manager):
+    generate_and_save_various_models(
+        model_manager, radii=[100., 200.,], areas=['5', '10', '20']
+        )
+    generate_and_save_various_models(
+        model_manager, radii=[400.], areas=['10', '20', '30'], sides=60
+        )
+    generate_and_save_various_models(
+        model_manager, radii=[800.], areas=['25', '35', '50'], sides=100
+        )

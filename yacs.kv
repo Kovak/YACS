@@ -1,20 +1,31 @@
 #:kivy 1.9.0
-#:import os os
-#:import main __main__
-TestGame:
+#:import get_asset_path utils.get_asset_path
 
-<TestGame>:
+
+YACSGame:
+
+<YACSGame>:
     gameworld: gameworld
     GameWorld:
         id: gameworld
         gamescreenmanager: gamescreenmanager
         size_of_gameworld: 500*1024
-        zones: {'general': 10000}
-        model_format_allocations: {'vertex_format_2f4ub': (10000*1024, 10000*1024)}
+        system_count: 23
+        zones: {'general': 10000, 'particles': 10000, 'ships': 50, 'projectiles': 5000}
+        model_format_allocations: {'vertex_format_2f4ub': (10000*1024, 10000*1024), 'vertex_format_4f': (10000*1024, 10000*1024), 'vertex_format_9f4ub': (10000*1024, 10000*1024)}
         PositionSystem2D:
-            gameworld: gameworld
             system_id: 'position'
-            zones: ['general']
+            gameworld: gameworld
+            zones: ['general', 'particles', 'ships', 'projectiles']
+        RotateSystem2D:
+            gameworld: gameworld
+            zones: ['general', 'particles', 'ships', 'projectiles']
+        ScaleSystem2D:
+            gameworld: gameworld
+            zones: ['general', 'particles', 'ships']
+        ColorSystem:
+            gameworld: gameworld
+            zones: ['general', 'particles', 'ships']
         GameView:
             gameworld: gameworld
             id: camera_stars1
@@ -63,73 +74,161 @@ TestGame:
             system_id: 'camera_planet2'
             size: root.size
             currentmap: map
+            render_system_order: ['rotate_renderer', 'particle_renderer', 'planet2']
         ColorPolyRenderer:
             gameworld: gameworld
-            shader_source: os.path.join(os.path.dirname(main.__file__), 'assets', 'shaders', 'poscolorshader.glsl')
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'back_stars'
             zones: ['general']
             static_rendering: True
-            max_batches: 20
+            max_batches: 5
             gameview: 'camera_stars1'
             size_of_batches: 512
+            force_update: True
             system_names: ['back_stars', 'position']
             frame_count: 1
         ColorPolyRenderer:
             gameworld: gameworld
-            shader_source: os.path.join(os.path.dirname(main.__file__), 'assets', 'shaders', 'poscolorshader.glsl')
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'mid_stars'
             zones: ['general']
             static_rendering: True
-            max_batches: 20
+            max_batches: 5
+            force_update: True
             gameview: 'camera_stars2'
             size_of_batches: 512
             system_names: ['mid_stars', 'position']
             frame_count: 1
         ColorPolyRenderer:
             gameworld: gameworld
-            shader_source: os.path.join(os.path.dirname(main.__file__), 'assets', 'shaders', 'poscolorshader.glsl')
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'sun1'
             zones: ['general']
             static_rendering: True
-            max_batches: 20
+            force_update: True
+            max_batches: 10
             gameview: 'camera_sun1'
             size_of_batches: 768
             system_names: ['sun1', 'position']
             frame_count: 1
         ColorPolyRenderer:
             gameworld: gameworld
-            shader_source: os.path.join(os.path.dirname(main.__file__), 'assets', 'shaders', 'poscolorshader.glsl')
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'sun2'
             zones: ['general']
             static_rendering: True
-            max_batches: 20
+            force_update: True
+            max_batches: 10
             gameview: 'camera_sun2'
             size_of_batches: 768
             system_names: ['sun2', 'position']
             frame_count: 1
         ColorPolyRenderer:
             gameworld: gameworld
-            shader_source: os.path.join(os.path.dirname(main.__file__), 'assets', 'shaders', 'poscolorshader.glsl')
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             zones: ['general']
             system_id: 'planet1'
             gameview: 'camera_planet1'
+            force_update: True
             static_rendering: True
-            max_batches: 20
+            max_batches: 10
             size_of_batches: 768
             system_names: ['planet1', 'position']
             frame_count: 1
         ColorPolyRenderer:
             gameworld: gameworld
-            shader_source: os.path.join(os.path.dirname(main.__file__), 'assets', 'shaders', 'poscolorshader.glsl')
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'planet2'
             zones: ['general']
+            force_update: True
             static_rendering: True
-            max_batches: 20
+            max_batches: 10
             gameview: 'camera_planet2'
             size_of_batches: 768
             system_names: ['planet2', 'position']
             frame_count: 1
-    GameScreenManager:
+        ParticleSystem:
+            id: particles
+            gameworld: gameworld
+            zones: ['particles']
+            particle_zone: 'particles'
+        ParticleRenderer:
+            gameworld: gameworld
+            zones: ['particles']
+            shader_source: get_asset_path('assets', 'shaders', 'positionrotatecolorscale.glsl')
+            frame_count: 3
+            max_batches: 20
+            size_of_batches: 1024
+            gameview: 'camera_planet2'
+            updateable: True
+        EmitterSystem:
+            id: emitter
+            gameworld: gameworld
+            zones: ['ships', 'projectiles', 'general']
+            particle_system: particles.__self__
+        CymunkPhysics:
+            gameworld: root.gameworld
+            zones: ['ships', 'projectiles', 'general']
+            updateable: True
+            id: physics
+        SteeringSystem:
+            zones: ['ships']
+            gameworld: root.gameworld
+            updateable: True
+        RotateRenderer:
+            zones: ['ships', 'projectiles', 'general']
+            gameworld: gameworld
+            max_batches: 10
+            frame_count: 3
+            updateable: True
+            gameview: 'camera_planet2'
+            shader_source: get_asset_path('assets', 'shaders', 'positionrotateshader.glsl')
+        ShipSystem:
+            zones: ['ships']
+            do_components: True
+            system_id: 'ship_system'
+            id: ship_system
+            gameworld: gameworld
+        PlayerSystem:
+            do_components: False
+            system_id: 'player'
+            gameworld: gameworld
+            camera_system: camera_top
+            physics_system: physics
+            id: player
+        ProjectileSystem:
+            gameworld: gameworld
+            id: projectiles
+            zones: ['projectiles']
+            emitter_system: emitter
+            physics_system: physics
+            combat_stats_system: combat_stats
+            player_system: player
+        ProjectileWeaponSystem:
+            zones: ['ships']
+            id: weapons
+            gameworld: gameworld
+            player_entity: root.player_entity
+            projectile_system: projectiles.__self__
+        CombatStatsSystem:
+            id: combat_stats
+            gameworld: gameworld
+            zones: ['ships', 'projectiles', 'general']
+        LifespanSystem:
+            id: lifespan
+            gameworld: gameworld
+            zones: ['projectiles', 'general']
+        AsteroidSystem:
+            id: asteroids
+            gameworld: gameworld
+            explosion_system: explosions
+            player_system: player
+        ExplosionSystem:
+            id: explosions
+            gameworld: gameworld
+            zones: ['general']
+
+    GameScreenManager: 
         id: gamescreenmanager
         size: root.size
         pos: root.pos
@@ -146,7 +245,12 @@ TestGame:
             text: 'Gen'
             pos_hint: {'x': .9, 'y': .05}
             size_hint: (.1, .1)
-            on_release: app.root.redraw_map()
+            on_release: app.root.reload()
+        Button:
+            text: 'Clear'
+            pos_hint: {'x': .9, 'y': .175}
+            size_hint: (.1, .1)
+            on_release: app.root.clear()
         DebugPanel:
             size_hint: (.2, .1)
             pos_hint: {'x': .225, 'y': .025}
