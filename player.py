@@ -10,6 +10,8 @@ class PlayerSystem(GameSystem):
     physics_system = ObjectProperty(None)
     camera_system = ObjectProperty(None)
     touch_count = NumericProperty(0)
+    engine_rumble = NumericProperty(None)
+    sound_manager = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         super(PlayerSystem, self).__init__(**kwargs)
@@ -19,6 +21,9 @@ class PlayerSystem(GameSystem):
             entity = self.gameworld.entities[self.current_entity]
             ship_comp = entity.ship_system
             ship_comp.boosting = True
+            if self.engine_rumble is not None:
+                self.sound_manager.play_direct_loop(self.engine_rumble, 1.)
+
 
     def get_distance_from_player_scalar(self, position, max_distance=250):
         current_entity = self.current_entity
@@ -68,6 +73,8 @@ class PlayerSystem(GameSystem):
             entity = self.gameworld.entities[self.current_entity]
             ship_comp = entity.ship_system
             ship_comp.boosting = False
+            self.sound_manager.stop_direct(self.engine_rumble)
+
         Clock.unschedule(self.set_boosting)
         self.touch_count -= 1
         super(PlayerSystem, self).on_touch_up(touch)
