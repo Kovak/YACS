@@ -10,7 +10,7 @@ YACSGame:
         id: gameworld
         gamescreenmanager: gamescreenmanager
         size_of_gameworld: 500*1024
-        system_count: 23
+        system_count: 25
         zones: {'general': 10000, 'particles': 10000, 'ships': 50, 'projectiles': 5000}
         model_format_allocations: {'vertex_format_2f4ub': (10000*1024, 10000*1024), 'vertex_format_4f': (10000*1024, 10000*1024), 'vertex_format_9f4ub': (10000*1024, 10000*1024)}
         PositionSystem2D:
@@ -175,6 +175,14 @@ YACSGame:
             zones: ['ships']
             gameworld: root.gameworld
             updateable: True
+        SteeringAISystem:
+            zones: ['ships']
+            gameworld: root.gameworld
+            physics_system: physics.__self__
+        WeaponAISystem:
+            zones: ['ships']
+            gameworld: root.gameworld
+            physics_system: physics.__self__
         RotateRenderer:
             zones: ['ships', 'projectiles', 'general']
             gameworld: gameworld
@@ -188,7 +196,10 @@ YACSGame:
             do_components: True
             system_id: 'ship_system'
             id: ship_system
+            explosion_system: explosions
             gameworld: gameworld
+            camera_system: camera_top
+            player_system: player
         PlayerSystem:
             do_components: False
             system_id: 'player'
@@ -209,7 +220,7 @@ YACSGame:
             zones: ['ships']
             id: weapons
             gameworld: gameworld
-            player_entity: root.player_entity
+            player_entity: player.current_entity
             projectile_system: projectiles.__self__
         CombatStatsSystem:
             id: combat_stats

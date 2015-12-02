@@ -45,6 +45,7 @@ class YACSGame(Widget):
         self.background_generator.generate()
         self.ids.player.load_player()
         self.spawn_some_asteroids()
+        self.load_enemy_ship()
 
     def spawn_some_asteroids(self):
         asteroid_system = self.ids.asteroids
@@ -76,11 +77,11 @@ class YACSGame(Widget):
             )
         ship_system.register_template(
             'ship1', 'Bulldog', model_name, 
-            'ship1', ship_collision_type, health=180., mass=250.,
+            'ship1', ship_collision_type, health=100., mass=250.,
             max_speed=150., max_turn_speed=150., accel=15000.,
             angular_accel=45.,
             boost_force=25000., boost_drain=25., max_boost_speed=225.,
-            armor=10., boost_reserve=50., boost_regen=10., width=96.,
+            armor=5., boost_reserve=50., boost_regen=10., width=96.,
             height=108., weapons=['ship1_shotgun'], emitters=[effect_name], 
             emitter_speed_base=90.,
             scale_base=2.2, emitter_scaling_factor=150.,
@@ -123,7 +124,7 @@ class YACSGame(Widget):
 
         weapon_system.register_weapon_template(
             'ship1_blaster', 
-            reload_time=1.5,
+            reload_time=3.5,
             projectile_type=1,
             ammo_count=100,
             rate_of_fire=.4, 
@@ -168,11 +169,11 @@ class YACSGame(Widget):
             )
         weapon_system.register_weapon_template(
             'ship1_rifle',
-            reload_time=1.5,
+            reload_time=6.5,
             projectile_type=3,
             ammo_count=100,
             rate_of_fire=.70, 
-            clip_size=24,
+            clip_size=10,
             barrel_offsets=[(46., 59.), (-46., 59.)],
             barrel_count=2,
             ammo_type=rifle_bullet_type,
@@ -212,11 +213,11 @@ class YACSGame(Widget):
             )
         weapon_system.register_weapon_template(
             'ship1_shotgun',
-            reload_time=2.5,
+            reload_time=5.0,
             projectile_type=1,
             ammo_count=100,
             rate_of_fire=.70, 
-            clip_size=24,
+            clip_size=6,
             barrel_offsets=[(46., 59.), (-46., 59.)],
             barrel_count=2,
             ammo_type=shotgun_bullet_type,
@@ -256,7 +257,11 @@ class YACSGame(Widget):
         asteroid_collision_type = physics_system.register_collision_type(
             'asteroids'
             )
+        ship_collision_type = physics_system.register_collision_type(
+            'ships'
+            )
         projectile_system.add_origin_collision_type(asteroid_collision_type)
+        projectile_system.add_origin_collision_type(ship_collision_type)
         self.load_weapons()
 
         ship_hit_asteroid = sound_manager.load_sound(
@@ -270,19 +275,21 @@ class YACSGame(Widget):
         emitter_system.load_effect(
             get_asset_path('assets', 'vfx', 'asteroidexplosion.kep')
             )
+        emitter_system.load_effect(
+            get_asset_path('assets', 'vfx', 'shipexplosion.kep')
+            )
+        explosion_system.register_template(
+            'ship_explosion', 'shipexplosion', 3.0, 1.5)
         asteroid_system.register_template(
             'asteroid1', asteroid_collision_type, 
             mass=50., radius=30., texture='asteroid1',
-            model_key=asteroid_model, health=2., armor=0.,
+            model_key=asteroid_model, health=20., armor=8.,
             ship_collision_sound = ship_hit_asteroid,
             asteroid_collision_sound = asteroid_hit_asteroid,
             )
 
         explosion_system.register_template(
             'asteroid_explosion', 'asteroidexplosion', 1.5, 1.0)
-        ship_collision_type = physics_system.register_collision_type(
-            'ships'
-            )
         physics_system.add_collision_handler(
             asteroid_collision_type, ship_collision_type,
             begin_func=asteroid_system.on_collision_begin_asteroid_ship)
@@ -299,14 +306,23 @@ class YACSGame(Widget):
         self.background_generator.redraw_map()
         self.ids.player.load_player()
         self.spawn_some_asteroids()
+        self.load_enemy_ship()
+
+    def load_enemy_ship(self):
+        ship_system = self.gameworld.system_manager['ship_system']
+        ship_id = ship_system.spawn_ship('ship1', False, (1600, 1600.))
+
+
 
     def clear(self):
         camera = self.ids.camera_top
         camera.focus_entity = False
         self.ids.player.current_entity = None
         self.ids.asteroids.is_clearing = True
+        self.ids.ship_system.is_clearing = True
         self.gameworld.clear_entities()
         self.ids.asteroids.is_clearing = False
+        self.ids.ship_system.is_clearing = False
 
     def setup_states(self):
         self.gameworld.add_state(

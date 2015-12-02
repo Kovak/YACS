@@ -1,6 +1,7 @@
 from kivent_core.systems.gamesystem import GameSystem
 from kivy.factory import Factory
-from kivy.properties import NumericProperty, BooleanProperty, ObjectProperty
+from kivy.properties import (NumericProperty, BooleanProperty, ObjectProperty,
+    ListProperty)
 from kivy.clock import Clock
 from kivy.vector import Vector
 
@@ -12,6 +13,8 @@ class PlayerSystem(GameSystem):
     touch_count = NumericProperty(0)
     engine_rumble = NumericProperty(None)
     sound_manager = ObjectProperty(None)
+    updateable = BooleanProperty(True)
+    last_touch = ListProperty(None, allownone=True)
 
     def __init__(self, **kwargs):
         super(PlayerSystem, self).__init__(**kwargs)
@@ -39,6 +42,17 @@ class PlayerSystem(GameSystem):
         else:
             return 1. - distance/max_distance
 
+    def update(self, dt):
+        if (self.last_touch is not None and self.last_touch != [] and 
+            self.current_entity is not None):
+            camera_system = self.camera_system
+            world_pos = camera_system.convert_from_screen_to_world(self.last_touch)
+            entity = self.gameworld.entities[self.current_entity]
+            steering = entity.steering
+            steering.target = world_pos
+            steering.active = True
+
+
     def on_touch_down(self, touch):
         self.touch_count += 1
         touch_radius = 20
@@ -51,6 +65,7 @@ class PlayerSystem(GameSystem):
             x - touch_radius, y - touch_radius,
             x + touch_radius, y + touch_radius
             ]
+        self.last_touch = []
         if self.current_entity is not None:
             entity = self.gameworld.entities[self.current_entity]
             collisions = physics_system.query_bb(collide_area)
@@ -60,6 +75,7 @@ class PlayerSystem(GameSystem):
             elif touch_count == 1:
                 steering = entity.steering
                 steering.target = world_pos
+                self.last_touch = touch.pos
                 steering.active = True
                 Clock.schedule_once(self.set_boosting, .5)
             elif touch_count == 2:
@@ -67,6 +83,17 @@ class PlayerSystem(GameSystem):
                 weapons.firing = True
                 Clock.unschedule(self.set_boosting)
         super(PlayerSystem, self).on_touch_down(touch)
+
+    def on_touch_move(self, touch):
+        if self.touch_count == 1:
+            camera_system = self.camera_system
+            world_pos = camera_system.convert_from_screen_to_world(touch.pos)
+            if self.current_entity is not None:
+                entity = self.gameworld.entities[self.current_entity]
+                steering = entity.steering
+                steering.target = world_pos
+                self.last_touch = touch.pos
+
 
     def on_touch_up(self, touch):
         if self.current_entity is not None:
@@ -81,13 +108,8 @@ class PlayerSystem(GameSystem):
 
     def load_player(self):
         ship_system = self.gameworld.system_manager['ship_system']
-        ship_id = ship_system.load_ship('ship1', True, (500., 500.))
+        ship_id = ship_system.spawn_ship('ship1', True, (500., 500.))
         self.current_entity = ship_id
-        entity = self.gameworld.entities[ship_id]
-        emitters = entity.emitters
-        emitter = emitters.emitters[0]
-        emitter.emit_angle_offset = 180.
-        emitter.pos_offset = (50., 0.)
         camera = self.gameworld.system_manager['camera_planet2']
         camera.focus_entity = True
         camera.entity_to_focus = ship_id
