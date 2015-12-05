@@ -1,5 +1,5 @@
 # YACS
-You're the Captain of a Spaceship - Game Created with Kivy and KivEnt
+You Are the Captain of a Spaceship - Game Created with Kivy and KivEnt
 
 The code in this repository is MIT licensed. The art assets, music, and sound fx
 found in the assets folder are under a Creative Commons Non-Commercial Share-A-Like
