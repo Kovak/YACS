@@ -1,7 +1,7 @@
 from kivent_core.systems.gamesystem import GameSystem
 from kivy.factory import Factory
 from kivy.properties import (NumericProperty, BooleanProperty, ObjectProperty,
-    ListProperty)
+    ListProperty, StringProperty)
 from kivy.clock import Clock
 from kivy.vector import Vector
 
@@ -11,10 +11,16 @@ class PlayerSystem(GameSystem):
     physics_system = ObjectProperty(None)
     camera_system = ObjectProperty(None)
     touch_count = NumericProperty(0)
+    current_health = NumericProperty(100.)
+    total_health = NumericProperty(100.)
+    current_weapon_name = StringProperty('Weapon Name')
+    current_ammo = NumericProperty(0)
+    total_ammo = NumericProperty(100)
     engine_rumble = NumericProperty(None)
     sound_manager = ObjectProperty(None)
     updateable = BooleanProperty(True)
-    last_touch = ListProperty(None, allownone=True)
+    last_touch = ListProperty([])
+    weapon_system = ObjectProperty(None)
 
     def __init__(self, **kwargs):
         super(PlayerSystem, self).__init__(**kwargs)
@@ -43,14 +49,21 @@ class PlayerSystem(GameSystem):
             return 1. - distance/max_distance
 
     def update(self, dt):
-        if (self.last_touch is not None and self.last_touch != [] and 
-            self.current_entity is not None):
-            camera_system = self.camera_system
-            world_pos = camera_system.convert_from_screen_to_world(self.last_touch)
+        if self.current_entity is not None:
             entity = self.gameworld.entities[self.current_entity]
-            steering = entity.steering
-            steering.target = world_pos
-            steering.active = True
+            combat_stats = entity.combat_stats
+            weapon_comp = entity.projectile_weapons
+            current_weapon = weapon_comp.equipped_weapon
+            self.current_health = combat_stats.health
+            self.current_ammo = current_weapon.in_clip
+            self.total_ammo = current_weapon.ammo_count
+            if self.last_touch != []:
+                camera_system = self.camera_system
+                world_pos = camera_system.convert_from_screen_to_world(
+                    self.last_touch)
+                steering = entity.steering
+                steering.target = world_pos
+                steering.active = True
 
 
     def on_touch_down(self, touch):
@@ -101,6 +114,7 @@ class PlayerSystem(GameSystem):
             ship_comp = entity.ship_system
             ship_comp.boosting = False
             self.sound_manager.stop_direct(self.engine_rumble)
+            self.last_touch = []
 
         Clock.unschedule(self.set_boosting)
         self.touch_count -= 1
@@ -109,7 +123,12 @@ class PlayerSystem(GameSystem):
     def load_player(self):
         ship_system = self.gameworld.system_manager['ship_system']
         ship_id = ship_system.spawn_ship('ship1', True, (500., 500.))
+        template = ship_system.templates['ship1']
+        self.current_health = template.health
+        self.total_health = template.health
         self.current_entity = ship_id
+        self.current_weapon_name = self.weapon_system.get_current_weapon_name(
+            ship_id)
         camera = self.gameworld.system_manager['camera_planet2']
         camera.focus_entity = True
         camera.entity_to_focus = ship_id

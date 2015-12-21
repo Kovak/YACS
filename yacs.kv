@@ -1,6 +1,15 @@
 #:kivy 1.9.0
 #:import get_asset_path utils.get_asset_path
-
+#:set COLOR_HIGHLIGHT (0.788235294, 0.643137255, 1)
+#:set COLOR_BACKGROUND (0.349019608, 0.082352941, 0.658823529)
+#:set COLOR_BACKGROUND_A50 (0.349019608, 0.082352941, 0.658823529, .5)
+#:set COLOR_BORDER (0.643137255, 0.160784314, 1)
+#:set COLOR_BORDER_A50 (0.643137255, 0.160784314, 1, .5)
+#:set COLOR_BORDER_A75 (0.643137255, 0.160784314, 1, .75)
+#:set COLOR_HIGHLIGHT_A50 (0.788235294, 0.643137255, 1, .5)
+#:set COLOR_HIGHLIGHT_A100 (0.788235294, 0.643137255, 1, 1.0)
+#:set COLOR_BACKGROUND_A100 (0.349019608, 0.082352941, 0.658823529, 1.0)
+#:set COLOR_BORDER_A100 (0.643137255, 0.160784314, 1, 1.0)
 
 YACSGame:
 
@@ -208,6 +217,7 @@ YACSGame:
             physics_system: physics
             id: player
             sound_manager: gameworld.sound_manager
+            weapon_system: weapons
         ProjectileSystem:
             gameworld: gameworld
             id: projectiles
@@ -245,12 +255,14 @@ YACSGame:
         size: root.size
         pos: root.pos
         gameworld: gameworld
+        MainScreen:
+            current_health: player.current_health
+            total_health: player.total_health
+            current_ammo: player.current_ammo
+            total_ammo: player.total_ammo
+            weapon_name: player.current_weapon_name
 
-<GameScreenManager>:
-    MainScreen:
-        id: main_screen
-
-<MainScreen@GameScreen>:
+<MainScreen>:
     name: 'main'
     FloatLayout:
         Button: 
@@ -266,6 +278,17 @@ YACSGame:
         DebugPanel:
             size_hint: (.2, .1)
             pos_hint: {'x': .225, 'y': .025}
+        HealthBar:
+            size_hint: (.25, .1)
+            pos_hint: {'x': .025, 'y': .875}
+            current_health: root.current_health
+            total_health: root.total_health
+        AmmoBar:
+            size_hint: (.25, .05)
+            pos_hint: {'x': .025, 'y': .825}
+            current_ammo: root.current_ammo
+            total_ammo: root.total_ammo
+            weapon_name: root.weapon_name
 
 
 <DebugPanel>:
@@ -279,4 +302,39 @@ YACSGame:
         text: 'FPS: ' + root.fps if root.fps != None else 'FPS:'
 
 
+<HealthBar>:
+    orientation: 'vertical'
+    padding: 10
+    Widget:
+        size_hint: (1.0, 1.0)
+        canvas:
+            Color:
+                rgba: COLOR_BACKGROUND_A50
+            Rectangle: 
+                pos: self.pos
+                size: self.size
+            Color:
+                rgba: COLOR_HIGHLIGHT_A50
+            Rectangle:
+                pos: self.pos
+                size: ((root.health_percentage)*self.size[0], self.size[1])
+            Color:
+                rgba: COLOR_BORDER_A50
+            Line:
+                width: 2.
+                rectangle: (self.pos[0], self.pos[1], self.size[0], self.size[1])
+                joint: 'bevel'
+
+<AmmoBar>:
+    orientation: 'horizontal'
+    padding: 10
+    Label:
+        text: root.weapon_name
+        size_hint: (.4, 1.0)
+    Label:
+        text: str(root.current_ammo)
+        size_hint: (.3, 1.0)
+    Label:
+        text: str(root.total_ammo)
+        size_hint: (.3, 1.0)
 

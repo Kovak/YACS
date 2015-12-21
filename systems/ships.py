@@ -169,7 +169,7 @@ class ShipSystem(GameSystem):
             'arrived_radius': 50.
         }
         weapon_choice = choice(
-            ['ship1_shotgun', 'ship1_blaster', 'ship1_rifle'])
+            [ 'ship1_rifle'])#'ship1_shotgun', 'ship1_blaster'])
         create_component_dict = {
             'position': position,
             'rotate': 0.,

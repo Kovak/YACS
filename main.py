@@ -13,13 +13,10 @@ from utils import get_asset_path
 import kivent_particles
 import kivent_cymunk
 import kivent_projectiles
-import ships
 from math import radians
-import player
-import explosions
-import asteroids
+from systems import player, explosions, asteroids, ships
 from random import randrange
-
+import ui_elements
 
 class YACSGame(Widget):
     player_entity = NumericProperty(None, allownone=True)
@@ -33,7 +30,7 @@ class YACSGame(Widget):
             'scale', 'rotate', 'color', 'particles', 'emitters',
             'particle_renderer', 'cymunk_physics', 'steering', 'ship_system',
             'projectiles', 'projectile_weapons', 'lifespan', 'combat_stats',
-            'asteroids'],
+            'asteroids', 'steering_ai', 'weapon_ai'],
             callback=self.init_game
             )
         self.background_generator = BackgroundGenerator(self.gameworld)
@@ -54,7 +51,8 @@ class YACSGame(Widget):
             x = randrange(0, 2000)
             y = randrange(0, 2000)
             asteroid_system.spawn_object_from_template(
-                'asteroid1', (x, y)
+                'asteroid1',
+                (x, y),
                 )
 
 
@@ -123,7 +121,7 @@ class YACSGame(Widget):
             )
 
         weapon_system.register_weapon_template(
-            'ship1_blaster', 
+            'ship1_blaster', 'Blaster',
             reload_time=3.5,
             projectile_type=1,
             ammo_count=100,
@@ -168,24 +166,24 @@ class YACSGame(Widget):
             get_asset_path('assets', 'soundfx', 'rifle', 'shoot.wav')
             )
         weapon_system.register_weapon_template(
-            'ship1_rifle',
+            'ship1_rifle', 'Rifle',
             reload_time=6.5,
             projectile_type=3,
             ammo_count=100,
-            rate_of_fire=.70, 
+            rate_of_fire=.75, 
             clip_size=10,
             barrel_offsets=[(46., 59.), (-46., 59.)],
             barrel_count=2,
             ammo_type=rifle_bullet_type,
             projectile_width=12.,
             projectile_height=12.,
-            accel=50000,
+            accel=100000,
             reload_begin_sound=rifle_begin,
             reload_end_sound=rifle_end,
             fire_sound=rifle_fire_sound,
             spread=radians(0.),
             shot_count=2,
-            time_between_shots=.25,
+            time_between_shots=.2,
             )
 
         shotgun_begin = sound_manager.load_sound(
@@ -212,7 +210,7 @@ class YACSGame(Widget):
             hit_sound=rifle_hit_sound
             )
         weapon_system.register_weapon_template(
-            'ship1_shotgun',
+            'ship1_shotgun', 'Shotgun',
             reload_time=5.0,
             projectile_type=1,
             ammo_count=100,
@@ -311,8 +309,6 @@ class YACSGame(Widget):
     def load_enemy_ship(self):
         ship_system = self.gameworld.system_manager['ship_system']
         ship_id = ship_system.spawn_ship('ship1', False, (1600, 1600.))
-
-
 
     def clear(self):
         camera = self.ids.camera_top
