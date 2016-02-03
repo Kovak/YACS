@@ -7,6 +7,7 @@
 #:set COLOR_BORDER_A50 (0.643137255, 0.160784314, 1, .5)
 #:set COLOR_BORDER_A75 (0.643137255, 0.160784314, 1, .75)
 #:set COLOR_HIGHLIGHT_A50 (0.788235294, 0.643137255, 1, .5)
+#:set COLOR_HIGHLIGHT_A75 (0.788235294, 0.643137255, 1, .75)
 #:set COLOR_HIGHLIGHT_A100 (0.788235294, 0.643137255, 1, 1.0)
 #:set COLOR_BACKGROUND_A100 (0.349019608, 0.082352941, 0.658823529, 1.0)
 #:set COLOR_BORDER_A100 (0.643137255, 0.160784314, 1, 1.0)
@@ -19,7 +20,7 @@ YACSGame:
         id: gameworld
         gamescreenmanager: gamescreenmanager
         size_of_gameworld: 500*1024
-        system_count: 25
+        system_count: 30
         zones: {'general': 10000, 'particles': 10000, 'ships': 50, 'projectiles': 5000}
         model_format_allocations: {'vertex_format_2f4ub': (10000*1024, 10000*1024), 'vertex_format_4f': (10000*1024, 10000*1024), 'vertex_format_9f4ub': (10000*1024, 10000*1024)}
         PositionSystem2D:
@@ -35,56 +36,106 @@ YACSGame:
         ColorSystem:
             gameworld: gameworld
             zones: ['general', 'particles', 'ships']
+        ColorSystem:
+            gameworld: gameworld
+            system_id: 'radar_color'
+            zones: ['general', 'ships']
+        PlayerSystem:
+            do_components: False
+            system_id: 'player'
+            gameworld: gameworld
+            camera_system: camera_top
+            physics_system: physics
+            id: player
+            sound_manager: gameworld.sound_manager
+            weapon_system: weapons
         GameView:
             gameworld: gameworld
             id: camera_stars1
             system_id: 'camera_stars1'
             camera_pos: (camera_top.camera_pos[0])*.4, (camera_top.camera_pos[1])*.4
+            touch_pass_through: True
             do_scroll_lock: False
+            window_size: root.size
             size: root.size
         GameView:
             gameworld: gameworld
             id: camera_stars2
             system_id: 'camera_stars2'
+            window_size: root.size
             do_scroll_lock: False
             camera_pos: (camera_top.camera_pos[0])*.5, (camera_top.camera_pos[1])*.5
+            touch_pass_through: True
             size: root.size
         GameView:
             gameworld: gameworld
             id: camera_sun1
             system_id: 'camera_sun1'
+            window_size: root.size
             camera_pos: (camera_top.camera_pos[0])*.66, (camera_top.camera_pos[1])*.66
+            touch_pass_through: True
             do_scroll_lock: False
             size: root.size
         GameView:
             gameworld: gameworld
             id: camera_sun2
             system_id: 'camera_sun2'
+            window_size: root.size
             camera_pos: (camera_top.camera_pos[0])*.75, (camera_top.camera_pos[1])*.75
+            touch_pass_through: True
             do_scroll_lock: False
             size: root.size
         GameMap:
             system_id: 'map'
             id: map
             map_size: (2500., 2500.)
+        GameMap:
+            system_id: 'g_map'
+            id: g_map
+            map_size: (2500., 2500.)
         GameView:
             gameworld: gameworld
             id: camera_planet1
             system_id: 'camera_planet1'
+            window_size: root.size
             camera_pos: (camera_top.camera_pos[0])*.83, (camera_top.camera_pos[1])*.83
             do_scroll_lock: False
+            touch_pass_through: True
             size: root.size
         GameView:
             gameworld: gameworld
             do_scroll: True
             do_scroll_lock: True
+            touch_pass_through: True
             id: camera_top
+            size_hint: (None, None)
             camera_pos: (-500., -500.)
             system_id: 'camera_planet2'
             size: root.size
             currentmap: map
-            render_system_order: ['rotate_renderer', 'particle_renderer', 'planet2']
-        ColorPolyRenderer:
+            window_size: root.size
+            render_system_order: ['shield_renderer', 'rotate_renderer','particle_renderer', 'planet2']
+        GameView:
+            gameworld: gameworld
+            do_scroll: True
+            do_scroll_lock: True
+            id: grid_camera
+            camera_pos: (self.x*self.camera_scale, self.y*self.camera_scale)
+            system_id: 'grid_camera'
+            size: root.size
+            window_size: root.width * .4, root.height * .3
+            pos: root.width * .025, root.height *.65
+            currentmap: g_map
+            camera_scale: 4.
+            render_system_order: ['radar_renderer', 'map_grid']
+            canvas.before:
+                ScissorPush:
+                    size: self.window_size
+                    pos: self.pos
+            canvas.after:
+                ScissorPop:
+
+        PolyRenderer:
             gameworld: gameworld
             shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'back_stars'
@@ -96,7 +147,7 @@ YACSGame:
             force_update: True
             system_names: ['back_stars', 'position']
             frame_count: 1
-        ColorPolyRenderer:
+        PolyRenderer:
             gameworld: gameworld
             shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'mid_stars'
@@ -108,7 +159,7 @@ YACSGame:
             size_of_batches: 512
             system_names: ['mid_stars', 'position']
             frame_count: 1
-        ColorPolyRenderer:
+        PolyRenderer:
             gameworld: gameworld
             shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'sun1'
@@ -120,7 +171,7 @@ YACSGame:
             size_of_batches: 768
             system_names: ['sun1', 'position']
             frame_count: 1
-        ColorPolyRenderer:
+        PolyRenderer:
             gameworld: gameworld
             shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'sun2'
@@ -132,7 +183,7 @@ YACSGame:
             size_of_batches: 768
             system_names: ['sun2', 'position']
             frame_count: 1
-        ColorPolyRenderer:
+        PolyRenderer:
             gameworld: gameworld
             shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             zones: ['general']
@@ -144,7 +195,7 @@ YACSGame:
             size_of_batches: 768
             system_names: ['planet1', 'position']
             frame_count: 1
-        ColorPolyRenderer:
+        PolyRenderer:
             gameworld: gameworld
             shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
             system_id: 'planet2'
@@ -195,11 +246,45 @@ YACSGame:
         RotateRenderer:
             zones: ['ships', 'projectiles', 'general']
             gameworld: gameworld
-            max_batches: 10
-            frame_count: 3
+            max_batches: 20
+            frame_count: 4
             updateable: True
             gameview: 'camera_planet2'
             shader_source: get_asset_path('assets', 'shaders', 'positionrotateshader.glsl')
+        ColorPolyRenderer:
+            gameworld: gameworld
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
+            system_id: 'shield_renderer'
+            zones: ['ships']
+            static_rendering: False
+            max_batches: 10
+            gameview: 'camera_planet2'
+            size_of_batches: 768
+            system_names: ['shield_renderer', 'position', 'color']
+            frame_count: 2
+        PolyRenderer:
+            gameworld: gameworld
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
+            system_id: 'map_grid'
+            zones: ['general']
+            force_update: True
+            static_rendering: True
+            max_batches: 5
+            gameview: 'grid_camera'
+            size_of_batches: 768
+            system_names: ['map_grid', 'position']
+            frame_count: 1
+        RotateColorRenderer:
+            zones: ['ships', 'general']
+            gameworld: gameworld
+            max_batches: 20
+            system_id: 'radar_renderer'
+            frame_count: 4
+            updateable: True
+            size_of_batches: 768
+            gameview: 'grid_camera'
+            system_names: ['radar_renderer', 'position', 'rotate', 'radar_color']
+            shader_source: get_asset_path('assets', 'shaders', 'positionrotatecolorshader.glsl')
         ShipSystem:
             zones: ['ships']
             do_components: True
@@ -209,15 +294,6 @@ YACSGame:
             gameworld: gameworld
             camera_system: camera_top
             player_system: player
-        PlayerSystem:
-            do_components: False
-            system_id: 'player'
-            gameworld: gameworld
-            camera_system: camera_top
-            physics_system: physics
-            id: player
-            sound_manager: gameworld.sound_manager
-            weapon_system: weapons
         ProjectileSystem:
             gameworld: gameworld
             id: projectiles
@@ -231,6 +307,8 @@ YACSGame:
             id: weapons
             gameworld: gameworld
             player_entity: player.current_entity
+            player_system: player
+            sound_distance: 2000.
             projectile_system: projectiles.__self__
         CombatStatsSystem:
             id: combat_stats
@@ -249,7 +327,13 @@ YACSGame:
             id: explosions
             gameworld: gameworld
             zones: ['general']
-
+        ShieldSystem:
+            id: shields
+            gameworld: gameworld
+            zones: ['ships']
+            physics_system: physics
+            player_system: player
+            combat_stats_system: combat_stats
     GameScreenManager: 
         id: gamescreenmanager
         size: root.size
@@ -258,9 +342,12 @@ YACSGame:
         MainScreen:
             current_health: player.current_health
             total_health: player.total_health
+            current_shields: player.current_shields
+            total_shields: player.total_shields
             current_ammo: player.current_ammo
             total_ammo: player.total_ammo
             weapon_name: player.current_weapon_name
+
 
 <MainScreen>:
     name: 'main'
@@ -275,17 +362,54 @@ YACSGame:
             pos_hint: {'x': .9, 'y': .175}
             size_hint: (.1, .1)
             on_release: app.root.clear()
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint: (.3, .1)
+            pos_hint: {'x': .7, 'y': .3}
+            Button:
+                text: 'Up'
+                on_release: app.root.increment_world_y(1)
+            Button:
+                text: 'Down'
+                on_release: app.root.increment_world_y(-1)
+            Button:
+                text: 'Right'
+                on_release: app.root.increment_world_x(1)
+            Button:
+                text: 'Left'
+                on_release: app.root.increment_world_x(-1)
         DebugPanel:
-            size_hint: (.2, .1)
-            pos_hint: {'x': .225, 'y': .025}
+            size_hint: (.15, .1)
+            pos_hint: {'x': .005, 'y': .025}
+    FloatLayout:
+        size_hint: (.25, None)
+        x: (root.width - self.width) / 2.
+        on_pos: print(self.pos)
+        y: self.height + dp(5.)
+        height: health.height + ammo.height + shields.height
+        id: stats
         HealthBar:
-            size_hint: (.25, .1)
-            pos_hint: {'x': .025, 'y': .875}
+            id: health
+            size_hint: (1.0, None)
+            height: dp(25.)
+            x: stats.x
+            y: stats.y + stats.height - dp(40.)
             current_health: root.current_health
             total_health: root.total_health
+        ShieldBar:
+            id: shields
+            size_hint: (1.0, None)
+            height: dp(5.)
+            x: stats.x
+            y: stats.y + stats.height - dp(50.)
+            current_shields: root.current_shields
+            total_shields: root.total_shields
         AmmoBar:
-            size_hint: (.25, .05)
-            pos_hint: {'x': .025, 'y': .825}
+            id: ammo
+            size_hint: (.5, None)
+            height: dp(20.)
+            x: stats.x
+            y: stats.y + stats.height - dp(75.)
             current_ammo: root.current_ammo
             total_ammo: root.total_ammo
             weapon_name: root.weapon_name
@@ -303,38 +427,45 @@ YACSGame:
 
 
 <HealthBar>:
-    orientation: 'vertical'
-    padding: 10
-    Widget:
-        size_hint: (1.0, 1.0)
-        canvas:
-            Color:
-                rgba: COLOR_BACKGROUND_A50
-            Rectangle: 
-                pos: self.pos
-                size: self.size
-            Color:
-                rgba: COLOR_HIGHLIGHT_A50
-            Rectangle:
-                pos: self.pos
-                size: ((root.health_percentage)*self.size[0], self.size[1])
-            Color:
-                rgba: COLOR_BORDER_A50
-            Line:
-                width: 2.
-                rectangle: (self.pos[0], self.pos[1], self.size[0], self.size[1])
-                joint: 'bevel'
+
+    size_hint: (1.0, 1.0)
+    canvas:
+        Color:
+            rgba: COLOR_BACKGROUND_A50
+        Rectangle: 
+            pos: self.pos
+            size: self.size
+        Color:
+            rgba: COLOR_HIGHLIGHT_A50
+        Rectangle:
+            pos: self.pos
+            size: ((root.health_percentage)*self.size[0], self.size[1])
+        Color:
+            rgba: COLOR_BORDER_A50
+        Line:
+            width: 2.
+            rectangle: (self.pos[0], self.pos[1], self.size[0], self.size[1])
+            joint: 'bevel'
+
+<ShieldBar>:
+
+    size_hint: (1.0, 1.0)
+    canvas:
+        Color:
+            rgba: COLOR_HIGHLIGHT_A75
+        Rectangle:
+            pos: self.pos
+            size: (root.shield_percentage*self.size[0], self.size[1])
 
 <AmmoBar>:
     orientation: 'horizontal'
-    padding: 10
-    Label:
-        text: root.weapon_name
-        size_hint: (.4, 1.0)
+    spacing: dp(5.)
     Label:
         text: str(root.current_ammo)
-        size_hint: (.3, 1.0)
+        size_hint: (.4, 1.0)
+        halign: 'left'
     Label:
         text: str(root.total_ammo)
-        size_hint: (.3, 1.0)
+        size_hint: (.6, 1.0)
+        halign: 'left'
 

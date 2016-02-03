@@ -12,7 +12,10 @@ class ShipTemplate(object):
         angular_accel, boost_force,
         boost_drain, max_boost_speed, armor, boost_reserve,
         boost_regen, width, height, weapons, emitters,
-        emitter_speed_base, scale_base, emitter_scaling_factor):
+        emitter_speed_base, scale_base, emitter_scaling_factor,
+        explosion_sound, has_shield, shield_model, shield_health,
+        shield_radius, shield_timeout, shield_recharge, radar_model_name,
+        radar_texture):
         self.name = name
         self.template_name = template_name
         self.collision_type = collision_type
@@ -37,6 +40,15 @@ class ShipTemplate(object):
         self.emitter_speed_base = emitter_speed_base
         self.scale_base = scale_base
         self.emitter_scaling_factor = emitter_scaling_factor
+        self.explosion_sound = explosion_sound
+        self.has_shield = has_shield
+        self.shield_model = shield_model
+        self.shield_health = shield_health
+        self.shield_radius = shield_radius
+        self.shield_timeout = shield_timeout
+        self.shield_recharge = shield_recharge
+        self.radar_model_name = radar_model_name
+        self.radar_texture = radar_texture
 
 
 class ShipSystem(GameSystem):
@@ -57,6 +69,9 @@ class ShipSystem(GameSystem):
         boost_drain=25., max_boost_speed=225., armor=10., boost_reserve=100.,
         boost_regen=10., width=100., height=100., weapons=[], emitters=[],
         emitter_speed_base=90., scale_base=2.2, emitter_scaling_factor=150.,
+        explosion_sound=-1, has_shield=False, shield_model=None,
+        shield_health=100., shield_radius=100., shield_timeout=1.25,
+        shield_recharge=20., radar_model_name=None, radar_texture=None
         ):
         self.templates[template_name] = ShipTemplate(
             template_name, name, model, texture, collision_type, health,
@@ -64,7 +79,10 @@ class ShipSystem(GameSystem):
             angular_accel, boost_force,
             boost_drain, max_boost_speed, armor, boost_reserve,
             boost_regen, width, height, weapons, emitters,
-            emitter_speed_base, scale_base, emitter_scaling_factor
+            emitter_speed_base, scale_base, emitter_scaling_factor,
+            explosion_sound, has_shield, shield_model, shield_health,
+            shield_radius, shield_timeout, shield_recharge, radar_model_name,
+            radar_texture
             )
 
     def update(self, dt):
@@ -115,14 +133,22 @@ class ShipSystem(GameSystem):
         return ship_id
 
     def spawn_explosion(self, entity_id):
-        if entity_id == self.player_system.current_entity:
-            self.player_system.current_entity = None
-            self.camera_system.entity_to_focus = None
         if not self.is_clearing:
-            position = self.gameworld.entities[entity_id].position
+            entity = self.gameworld.entities[entity_id]
+            position = entity.position
+            ship_comp = entity.ship_system
+            explosion_sound = ship_comp.explosion_sound
+            if explosion_sound != -1:
+                volume = self.player_system.get_distance_from_player_scalar(
+                    entity.position.pos, max_distance=4000.)
+                sound_manager = self.gameworld.sound_manager
+                sound_manager.play_direct(explosion_sound, volume)
             self.explosion_system.spawn_object_from_template(
                 'ship_explosion', position.pos
                 )
+        if entity_id == self.player_system.current_entity:
+            self.player_system.current_entity = None
+            self.camera_system.entity_to_focus = None
 
     def load_ship(self, ship_name, is_player_character, position):
         template = self.templates[ship_name]
@@ -155,6 +181,7 @@ class ShipSystem(GameSystem):
             'boost_limit': template.max_boost_speed,
             'current_reserve': template.boost_reserve,
             'boost_regen': template.boost_regen,
+            'explosion_sound': template.explosion_sound
             }
         combat_stats = {
             'health': template.health, 
@@ -169,10 +196,11 @@ class ShipSystem(GameSystem):
             'arrived_radius': 50.
         }
         weapon_choice = choice(
-            [ 'ship1_rifle'])#'ship1_shotgun', 'ship1_blaster'])
+            [ 'ship1_rifle', 'ship1_shotgun', 'ship1_blaster'])
         create_component_dict = {
             'position': position,
             'rotate': 0.,
+            'color': (255, 0, 0, 255),
             'emitters': template.emitters,
             'cymunk_physics': physics_component_dict, 
             'rotate_renderer': {
@@ -184,7 +212,7 @@ class ShipSystem(GameSystem):
             'steering': steering,
             'projectile_weapons': {'weapons': [weapon_choice]}
             }
-        component_order = ['position', 'rotate', 'cymunk_physics', 
+        component_order = ['position', 'rotate', 'color', 'cymunk_physics', 
             'rotate_renderer', 'ship_system', 'steering', 'emitters',
             'projectile_weapons', 'combat_stats']
         if not is_player_character:
@@ -193,8 +221,28 @@ class ShipSystem(GameSystem):
                 'target': self.player_system.current_entity,
                 }
             create_component_dict['weapon_ai'] = {
-                'line_of_sight': 1000.,
+                'line_of_sight': 600.,
                 'active': True,
+                'target_id': self.player_system.current_entity
+                }
+        if template.has_shield:
+            component_order.extend(['shields', 'shield_renderer'])
+            create_component_dict['shields'] = {
+                'radius': template.shield_radius,
+                'recharge_rate': template.shield_recharge,
+                'health': template.shield_health,
+                'timeout': template.shield_timeout
+                }
+            create_component_dict['shield_renderer'] = {
+                'model_key': template.shield_model,
+                'render': True
+                }
+        if template.radar_model_name is not None:
+            component_order.extend(['radar_color', 'radar_renderer'])
+            create_component_dict['radar_color'] = (255, 0, 0, 255)
+            create_component_dict['radar_renderer'] = {
+                'model_key': template.radar_model_name,
+                'texture': template.radar_texture
                 }
         ship_ent_id = gameworld.init_entity( 
             create_component_dict, component_order, zone='ships',

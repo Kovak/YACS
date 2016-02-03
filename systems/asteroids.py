@@ -7,7 +7,7 @@ class AsteroidTemplate(object):
 
     def __init__(self, collision_type, max_velocity, max_angular_velocity,
         mass, radius, texture, model_key, health, armor, ship_collision_sound,
-        asteroid_collision_sound):
+        asteroid_collision_sound, radar_model, radar_texture):
         self.collision_type = collision_type
         self.max_velocity = max_velocity
         self.max_angular_velocity = max_angular_velocity
@@ -19,6 +19,8 @@ class AsteroidTemplate(object):
         self.armor = armor
         self.ship_collision_sound = ship_collision_sound
         self.asteroid_collision_sound = asteroid_collision_sound
+        self.radar_model_key = radar_model
+        self.radar_texture = radar_texture
 
 class AsteroidSystem(GameSystem):
     updateable = BooleanProperty(False)
@@ -35,12 +37,13 @@ class AsteroidSystem(GameSystem):
 
     def register_template(self, template_name, collision_type, 
         max_velocity=250., max_angular_velocity=math.radians(200.), mass=50.,
-        radius=30., texture=None, model_key=None, health=15., armor=5.,
-        ship_collision_sound=-1, asteroid_collision_sound=-1):
+        radius=30., texture=None, model_key=None, health=15., armor=2.,
+        ship_collision_sound=-1, asteroid_collision_sound=-1, radar_model=None,
+        radar_texture=None):
         self.template_register[template_name] = AsteroidTemplate(
             collision_type, max_velocity, max_angular_velocity, mass, radius,
             texture, model_key, health, armor, ship_collision_sound,
-            asteroid_collision_sound
+            asteroid_collision_sound, radar_model, radar_texture
             )
 
     def spawn_explosion(self, entity_id):
@@ -58,7 +61,10 @@ class AsteroidSystem(GameSystem):
         #ship_entity = entities[ship_id]
         ship_collision_sound = asteroid_entity.asteroids.ship_collision_sound
         if ship_collision_sound != -1:
-            self.gameworld.sound_manager.play_direct(ship_collision_sound, 1.0)
+            volume_scale = self.player_system.get_distance_from_player_scalar(
+                asteroid_entity.position.pos, max_distance=250.)
+            self.gameworld.sound_manager.play_direct(ship_collision_sound,
+                volume_scale)
         return True
 
     def on_collision_begin_asteroid_asteroid(self, space, arbiter):
@@ -71,7 +77,7 @@ class AsteroidSystem(GameSystem):
         asteroid_collision_sound = asteroid_comp.asteroid_collision_sound
         if asteroid_collision_sound != -1:
             volume_scale = self.player_system.get_distance_from_player_scalar(
-                asteroid_entity.position.pos, max_distance=750.)
+                asteroid_entity.position.pos, max_distance=250.)
             self.gameworld.sound_manager.play_direct(
                 asteroid_collision_sound, volume_scale)
         return True
@@ -109,15 +115,20 @@ class AsteroidSystem(GameSystem):
                 }, 
             'position': position,
             'rotate': rotation,
+            'radar_color': (150, 120, 120, 255),
+            'radar_renderer': {'model_key': template.radar_model_key,
+                               'texture': template.radar_texture},
             'combat_stats': combat_stats_component,
             'asteroids': {
                 'ship_collision_sound': template.ship_collision_sound,
-                'asteroid_collision_sound': template.asteroid_collision_sound
+                'asteroid_collision_sound': template.asteroid_collision_sound,
+                'max_damage': 40.,
+                'speed_mag': 1000.,
                 }
             }
         component_order = [
             'position', 'rotate', 'cymunk_physics', 'rotate_renderer', 
-            'combat_stats', 'asteroids',
+            'combat_stats', 'asteroids', 'radar_color', 'radar_renderer'
             ]
         return self.gameworld.init_entity(
             create_component_dict, component_order

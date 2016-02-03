@@ -1,4 +1,5 @@
 from random import choice, uniform, randrange
+from utils import iweighted_choice
 
 color_palettes = {
     'violot': {
@@ -55,6 +56,26 @@ color_palettes = {
 color_choices = [key for key in color_palettes]
 sun_choices = ['orange', 'yellow', 'aqua', 'blue']
 
+def get_color1_choice_from_val(val):
+    if val <= .25:
+        return 'orange'
+    elif val <= .5:
+        return 'yellow'
+    elif val <= .75:
+        return 'aqua'
+    else:
+        return 'blue'
+
+def get_color2_choice_from_val(val):
+    if val <= .25:
+        return 'yellow'
+    elif val <= .5:
+        return 'orange'
+    elif val <= .75:
+        return 'blue'
+    else:
+        return 'aqua'
+
 def gen_star_color_levels(color):
     color_palette = color_palettes[color]
     color0 = list(color_palette[1])
@@ -67,9 +88,12 @@ def gen_star_color_levels(color):
     return {0: color0, 1: color1, 2: color2, 3: (color2[0], color2[1], 
         color2[3], 0)}
 
-def gen_color_palette(divisions, color1, color2, max_step, color_swaps, 
+def gen_color_palette(
+    divisions, color1, color2, max_step, color_swaps, 
     do_alpha=False, alpha_low_cutoff=0., alpha_high_cutoff=1., 
-    alpha_range=(100, 200), level_choices=[1, 2, 3, 4, 5]):
+    alpha_range=(100, 200),
+    level_choices=[(1, 1), (2, 1), (3, 1), (4, 1), (5, 1)]
+    ):
     current_point = 0.
     palette = []
     pal_a = palette.append
@@ -97,7 +121,7 @@ def gen_color_palette(divisions, color1, color2, max_step, color_swaps,
             current_point == 1.
         last_level = current_level
         while current_level == last_level:
-            current_level = choice(level_choices)
+            current_level = iweighted_choice(level_choices)
         swap_count += 1
         if swap_count >= swap_every:
             swap_count = 0

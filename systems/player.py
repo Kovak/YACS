@@ -13,6 +13,8 @@ class PlayerSystem(GameSystem):
     touch_count = NumericProperty(0)
     current_health = NumericProperty(100.)
     total_health = NumericProperty(100.)
+    current_shields = NumericProperty(0.)
+    total_shields = NumericProperty(100.)
     current_weapon_name = StringProperty('Weapon Name')
     current_ammo = NumericProperty(0)
     total_ammo = NumericProperty(100)
@@ -57,6 +59,10 @@ class PlayerSystem(GameSystem):
             self.current_health = combat_stats.health
             self.current_ammo = current_weapon.in_clip
             self.total_ammo = current_weapon.ammo_count
+            if hasattr(entity, 'shields'):
+                shield_comp = entity.shields
+                self.current_shields = shield_comp.current_health
+                self.total_shields = shield_comp.max_health
             if self.last_touch != []:
                 camera_system = self.camera_system
                 world_pos = camera_system.convert_from_screen_to_world(
@@ -65,8 +71,8 @@ class PlayerSystem(GameSystem):
                 steering.target = world_pos
                 steering.active = True
 
-
     def on_touch_down(self, touch):
+        touch.grab(self)
         self.touch_count += 1
         touch_radius = 20
         touch_count = self.touch_count
@@ -95,7 +101,9 @@ class PlayerSystem(GameSystem):
                 weapons = entity.projectile_weapons
                 weapons.firing = True
                 Clock.unschedule(self.set_boosting)
-        super(PlayerSystem, self).on_touch_down(touch)
+            return True
+        else:
+            return False
 
     def on_touch_move(self, touch):
         if self.touch_count == 1:
@@ -113,11 +121,13 @@ class PlayerSystem(GameSystem):
             entity = self.gameworld.entities[self.current_entity]
             ship_comp = entity.ship_system
             ship_comp.boosting = False
-            self.sound_manager.stop_direct(self.engine_rumble)
+            if self.engine_rumble is not None:
+                self.sound_manager.stop_direct(self.engine_rumble)
             self.last_touch = []
 
         Clock.unschedule(self.set_boosting)
-        self.touch_count -= 1
+        if touch.grab_current is self:
+            self.touch_count -= 1
         super(PlayerSystem, self).on_touch_up(touch)
 
     def load_player(self):

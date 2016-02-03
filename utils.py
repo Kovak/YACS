@@ -1,5 +1,9 @@
 from os import path
 import __main__
+from random import choice
+
+def iweighted_choice(choices):
+    return choice(sum([[v]*wt for v, wt in choices], []))
 
 def lerp(v0, v1, t):
     return (1-t)*v0 + t * v1
