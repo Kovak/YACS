@@ -92,6 +92,9 @@ class WorldSeed(object):
     def get_seed_for_zone(self, x, y):
         return self.world_seed + '_' + str(x) + '_' + str(y)
 
+    def get_global_map_seed(self):
+        return self.world_seed + '_global_map'
+
 
 
 class PlanetModel(object):
@@ -403,6 +406,7 @@ class BackgroundGenerator(object):
             for counts, choices in choice_pairs:
                 for planet_name in sample(choices, iweighted_choice(counts)):
                     if planet_name in used_planet_names:
+                        print('planet name in us', planet_name)
                         continue
                     used_planet_names.append(planet_name)
                     planet_data = planet_register[planet_name]
@@ -444,6 +448,9 @@ class BackgroundGenerator(object):
         medium_large_sun_1 = medium_large_sun_count // 2 
         medium_large_sun_2 = medium_large_sun_count - medium_large_sun_1
         large_sun_count = zone_info.large_suns
+        print(zone_info.small_suns, zone_info.medium_small_suns,
+              zone_info.medium_large_suns, zone_info.large_suns)
+        print(small_sun_1, small_sun_2)
 
         self.draw_map(
             map_size, offset,
@@ -464,9 +471,9 @@ class BackgroundGenerator(object):
         used = self.draw_map(
             map_size, offset, int(star_count*.1), color1, color2, 
             sun_renderer='sun2', used_planet_names=used,
-            small_sun_counts = [(small_sun_1, 1)],
-            medium_small_sun_counts = [(medium_small_sun_1, 1)],
-            medium_large_sun_counts = [(medium_large_sun_1, 1)],
+            small_sun_counts = [(small_sun_2, 1)],
+            medium_small_sun_counts = [(medium_small_sun_2, 1)],
+            medium_large_sun_counts = [(medium_large_sun_2, 1)],
             large_sun_counts = [(0, 1)],)
         used = self.draw_map(
             map_size, offset,

@@ -14,6 +14,15 @@ class MainScreen(GameScreen):
     current_shields = NumericProperty(0.)
     total_shields = NumericProperty(100.0)
 
+
+class MapScreen(GameScreen):
+    pass
+
+
+class JumpScreen(GameScreen):
+    pass
+
+
 class HealthBar(Widget):
     current_health = NumericProperty(100.0)
     total_health = NumericProperty(100.0)

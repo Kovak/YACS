@@ -22,7 +22,7 @@ uniform vec4       color;
 uniform float      opacity;
 
 void main (void) {
-  frag_color = v_color;
+  frag_color = v_color * color * vec4(1., 1., 1., opacity); 
   tex_coord0 = uvs;
   float a_sin = sin(rotate);
   float a_cos = cos(rotate);

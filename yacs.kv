@@ -20,7 +20,7 @@ YACSGame:
         id: gameworld
         gamescreenmanager: gamescreenmanager
         size_of_gameworld: 500*1024
-        system_count: 30
+        system_count: 32
         zones: {'general': 10000, 'particles': 10000, 'ships': 50, 'projectiles': 5000}
         model_format_allocations: {'vertex_format_2f4ub': (10000*1024, 10000*1024), 'vertex_format_4f': (10000*1024, 10000*1024), 'vertex_format_9f4ub': (10000*1024, 10000*1024)}
         PositionSystem2D:
@@ -93,6 +93,10 @@ YACSGame:
             system_id: 'g_map'
             id: g_map
             map_size: (2500., 2500.)
+        GameMap:
+            id: world_map
+            system_id: 'world_map'
+            map_size: [global_map.world_size*global_map.cell_size]*2
         GameView:
             gameworld: gameworld
             id: camera_planet1
@@ -120,11 +124,10 @@ YACSGame:
             do_scroll: True
             do_scroll_lock: True
             id: grid_camera
-            camera_pos: (self.x*self.camera_scale, self.y*self.camera_scale)
             system_id: 'grid_camera'
             size: root.size
-            window_size: root.width * .4, root.height * .3
-            pos: root.width * .025, root.height *.65
+            window_size: root.width * .6, root.height * .6
+            pos: root.width * .2, root.height *.3
             currentmap: g_map
             camera_scale: 4.
             render_system_order: ['radar_renderer', 'map_grid']
@@ -132,8 +135,21 @@ YACSGame:
                 ScissorPush:
                     size: self.window_size
                     pos: self.pos
+
             canvas.after:
                 ScissorPop:
+        GameView:
+            gameworld: gameworld
+            do_scroll: True
+            do_scroll_lock: True
+            id: global_camera
+            system_id: 'global_camera'
+            size: root.size
+            window_size: root.size
+            pos: root.pos
+            currentmap: world_map
+            camera_scale: 1.
+            render_system_order: ['global_map_renderer', 'world_grid']
 
         PolyRenderer:
             gameworld: gameworld
@@ -247,7 +263,7 @@ YACSGame:
             zones: ['ships', 'projectiles', 'general']
             gameworld: gameworld
             max_batches: 20
-            frame_count: 4
+            frame_count: 3
             updateable: True
             gameview: 'camera_planet2'
             shader_source: get_asset_path('assets', 'shaders', 'positionrotateshader.glsl')
@@ -274,12 +290,43 @@ YACSGame:
             size_of_batches: 768
             system_names: ['map_grid', 'position']
             frame_count: 1
+        PolyRenderer:
+            gameworld: gameworld
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
+            system_id: 'world_grid'
+            zones: ['general']
+            gameview: 'global_camera'
+            force_update: True
+            static_rendering: True
+            max_batches: 5
+            size_of_batches: 768
+            system_names: ['world_grid', 'position']
+            frame_count: 1
+        PolyRenderer:
+            gameworld: gameworld
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
+            system_id: 'global_map_renderer'
+            zones: ['general']
+            static_rendering: True
+            force_update: True
+            max_batches: 10
+            gameview: 'global_camera'
+            size_of_batches: 768
+            system_names: ['global_map_renderer', 'position']
+            frame_count: 1
+        GlobalMapSystem:
+            gameworld: gameworld
+            zones: ['general']
+            id: global_map
+            size: root.size
+            pos: root.pos
+            gameview: 'global_camera'
         RotateColorRenderer:
             zones: ['ships', 'general']
             gameworld: gameworld
             max_batches: 20
             system_id: 'radar_renderer'
-            frame_count: 4
+            frame_count: 3
             updateable: True
             size_of_batches: 768
             gameview: 'grid_camera'
@@ -347,6 +394,30 @@ YACSGame:
             current_ammo: player.current_ammo
             total_ammo: player.total_ammo
             weapon_name: player.current_weapon_name
+        MapScreen:
+        JumpScreen:
+
+
+<JumpScreen>:
+    name: 'jump'
+    Button:
+        text: 'Close'
+        pos_hint: {'x': .025, 'y': .9}
+        size_hint: (.15, .085)
+        on_release: app.root.set_state('main')
+
+<MapScreen>:
+    name: 'map'
+    Button:
+        text: 'Close'
+        pos_hint: {'x': .025, 'y': .9}
+        size_hint: (.15, .085)
+        on_release: app.root.set_state('main')
+    Button:
+        text: 'Jump'
+        pos_hint: {'x': .025, 'y': .025}
+        size_hint: (.15, .085)
+        on_release: app.root.set_state('worldmap')
 
 
 <MainScreen>:
@@ -362,6 +433,11 @@ YACSGame:
             pos_hint: {'x': .9, 'y': .175}
             size_hint: (.1, .1)
             on_release: app.root.clear()
+        Button:
+            text: 'Minimap'
+            pos_hint: {'x': .025, 'y': .9}
+            size_hint: (.15, .085)
+            on_release: app.root.set_state('minimap')
         BoxLayout:
             orientation: 'horizontal'
             size_hint: (.3, .1)
@@ -384,7 +460,6 @@ YACSGame:
     FloatLayout:
         size_hint: (.25, None)
         x: (root.width - self.width) / 2.
-        on_pos: print(self.pos)
         y: self.height + dp(5.)
         height: health.height + ammo.height + shields.height
         id: stats

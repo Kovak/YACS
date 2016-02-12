@@ -13,17 +13,15 @@ import kivent_particles
 import kivent_cymunk
 import kivent_projectiles
 from math import radians
-from systems import player, explosions, asteroids, ships, shield
+from systems import player, explosions, asteroids, ships, shield, globalmap
 from random import randrange, randint, choice
 import ui_elements
-from geometry import draw_colored_layered_grid
 from generate_assets import generate_shield_model
+from grid_generation import load_grid, generate_grid
 
 class YACSGame(Widget):
     player_entity = NumericProperty(None, allownone=True)
     is_clearing = BooleanProperty(False)
-    world_x = NumericProperty(50)
-    world_y = NumericProperty(50)
 
     def __init__(self, **kwargs):
         super(YACSGame, self).__init__(**kwargs)
@@ -36,7 +34,8 @@ class YACSGame(Widget):
             'projectiles', 'projectile_weapons', 'lifespan', 'combat_stats',
             'asteroids', 'steering_ai', 'weapon_ai', 'shields',
             'shield_renderer', 'map_grid', 'grid_camera', 'radar_renderer',
-            'radar_color'],
+            'radar_color', 'world_grid', 'global_map', 'global_camera',
+            'world_map', 'global_map_renderer'],
             callback=self.init_game
             )
         self.background_generator = BackgroundGenerator(self.gameworld)
@@ -46,14 +45,19 @@ class YACSGame(Widget):
         self.setup_states()
         self.ids.shields.register_collision()
         self.load_assets()
-        self.set_state()
+        global_map = self.ids.global_map
+        self.set_state('main')
         self.background_generator.generate()
-        self.background_generator.generate_map(self.world_seed, self.world_x,
-                                               self.world_y)
+        self.background_generator.generate_map(self.world_seed,
+                                               global_map.world_x,
+                                               global_map.world_y)
         self.ids.player.load_player()
         self.load_music()
         self.setup_grid()
-        self.render_grid_model()
+        global_map.setup_grid()
+        global_map.setup_map_stars(self.background_generator)
+        global_map.setup_zones(self.world_seed)
+        self.create_minimap_grid()
         #self.load_enemy_ship()
 
     def increment_world_y(self, val):
@@ -62,45 +66,19 @@ class YACSGame(Widget):
     def increment_world_x(self, val):
         self.world_x += val
 
-    def load_grid(self, model_data, name, do_copy=True):
-        return self.gameworld.model_manager.load_model(
-            'vertex_format_2f4ub',
-            model_data['vert_count'],
-            model_data['ind_count'],
-            name,
-            indices=model_data['indices'],
-            vertices=model_data['vertices'],
-            do_copy=do_copy
-            )
-
-    def get_grid_sizes(self, size, pos,
-        cell_count, border_size, line_width, fade_width):
-        line_space = (line_width + fade_width)
-        border_space = size[0] - 2*border_size, size[1] - 2*border_size
-        smallest_edge = min(border_space)
-        print(smallest_edge, cell_count, line_space)
-        usable_space = smallest_edge - cell_count*line_space
-        print(usable_space)
-        cell_size = usable_space/(cell_count-1)
-        leftovers = (size[0] - smallest_edge, size[1] - smallest_edge)
-        print('leftover', leftovers, border_size)
-        pos = (pos[0] + size[0]/2.,
-               pos[1] + size[1]/2.)
-        return (cell_size, pos)
-
     def setup_grid(self):
         outer_color = [150, 0, 100, 100]
         inner_color = [150, 0, 100, 255]
         grid_size = 17
         actual_size = (2500, 2500)
         actual_pos = (0., 0.)
-        print(actual_size, actual_pos, grid_size, 'render')
-        grid_offset, grid_data = self.generate_grid(actual_size, actual_pos,
-            grid_size, outer_color, inner_color)
-        self.grid_model = grid_name = self.load_grid(grid_data, 'grid')
+        grid_offset, grid_data = generate_grid(0., 10., 1., actual_size,
+                                               actual_pos, grid_size,
+                                               outer_color, inner_color)
+        self.grid_model = load_grid(self.gameworld, grid_data, 'mini_map_grid')
         self.grid_offset = grid_offset
 
-    def render_grid_model(self):
+    def create_minimap_grid(self):
         create_dict = {
             'position': self.grid_offset,
             'map_grid': {'model_key': self.grid_model},
@@ -109,23 +87,6 @@ class YACSGame(Widget):
             create_dict, 
             ['position', 'map_grid'])
         return ent
-
-
-    def generate_grid(self, size, pos, cells, outer_color, inner_color):
-        print(size, pos, cells, 'generate grid')
-        border_width = 0.
-        line_width = 10.
-        line_fade_width = 1.
-        cell_size, board_pos = self.get_grid_sizes(
-            size, pos, cells, border_width, line_width, line_fade_width
-            )
-        print(cell_size, cells)
-        grid_data = draw_colored_layered_grid(
-            line_width, cell_size, line_fade_width,
-            cells, outer_color, inner_color, outer_color[0:3] + [0]
-            )
-        return board_pos, grid_data
-
 
     def load_music(self):
         sound_manager = self.gameworld.sound_manager
@@ -318,10 +279,12 @@ class YACSGame(Widget):
 
         shotgun_begin = sound_manager.load_sound(
             'shotgun-reload-begin', 
-            get_asset_path('assets', 'soundfx', 'shotgun', 'reload-begin.wav'))
+            get_asset_path('assets', 'soundfx', 'shotgun', 'reload-begin.wav')
+            )
         shotgun_end = sound_manager.load_sound(
             'shotgun-reload-end', 
-            get_asset_path('assets', 'soundfx', 'shotgun', 'reload-end.wav'))
+            get_asset_path('assets', 'soundfx', 'shotgun', 'reload-end.wav')
+            )
         shotgun_fire_sound = sound_manager.load_sound(
             'shotgun-shoot', 
             get_asset_path('assets', 'soundfx', 'shotgun', 'shoot.wav')
@@ -434,7 +397,6 @@ class YACSGame(Widget):
         physics_system.add_collision_handler(
             asteroid_collision_type, asteroid_collision_type,
             begin_func=asteroid_system.on_collision_begin_asteroid_asteroid)
-        print(shield_system.shield_collision_type)
         physics_system.add_collision_handler(
             asteroid_collision_type, shield_system.shield_collision_type,
             begin_func=shield_system.on_collision_begin_asteroid_shield)
@@ -454,7 +416,7 @@ class YACSGame(Widget):
 
     def reload(self):
         print(self.world_x, self.world_y)
-        self.render_grid_model()
+        self.create_minimap_grid()
         self.background_generator.generate_map(self.world_seed, self.world_x,
                                                self.world_y)
         self.ids.player.load_player()
@@ -479,24 +441,66 @@ class YACSGame(Widget):
     def setup_states(self):
         self.gameworld.add_state(
             state_name='main', 
-            systems_added=[
-                'player', 'back_stars', 'mid_stars', 'sun1', 'sun2',
-                'planet1', 'planet2', 'particle_renderer', 'rotate_renderer',
-                'shield_renderer', 'grid_camera', 'map_grid', 'radar_renderer'
-                ],
-            systems_removed=[], systems_paused=[],
-            systems_unpaused=[
-                'back_stars', 'mid_stars', 'sun1', 'sun2',
-                'planet1', 'planet2', 'emitters', 'particles',
-                'particle_renderer', 'steering', 'cymunk_physics',
-                'rotate_renderer', 'projectiles', 'projectile_weapons',
-                'lifespan', 'combat_stats',
-                ],
+            systems_added=['player', 'back_stars', 'mid_stars', 'sun1', 'sun2',
+                           'planet1', 'particle_renderer',
+                           'rotate_renderer', 'shield_renderer', 'planet2', ],
+            systems_removed=['grid_camera', 'map_grid', 'radar_renderer',
+                             'world_grid', 'global_camera',
+                             'global_map_renderer'],
+            systems_paused=['grid_camera', 'map_grid', 'radar_renderer',
+                            'global_map_renderer'],
+            systems_unpaused=['back_stars', 'mid_stars', 'sun1', 'sun2',
+                              'planet1', 'planet2', 'emitters', 'particles',
+                              'particle_renderer', 'steering',
+                              'cymunk_physics', 'rotate_renderer',
+                              'projectiles', 'projectile_weapons', 'lifespan',
+                              'combat_stats', 'steering_ai', 'weapon_ai',],
             screenmanager_screen='main'
             )
+        self.gameworld.add_state(
+            state_name='minimap', 
+            systems_added=['back_stars', 'mid_stars', 'sun1', 'sun2',
+                           'planet1', 'planet2', 'particle_renderer',
+                           'rotate_renderer', 'shield_renderer', 'grid_camera',
+                           'map_grid', 'radar_renderer'],
+            systems_removed=['player', 'world_grid', 'global_camera',
+                             'global_map_renderer'],
+            systems_paused=['emitters', 'particles', 'steering',
+                            'cymunk_physics', 'lifespan', 'projectiles',
+                            'projectile_weapons',
+                            'combat_stats', 'steering_ai', 'weapon_ai',
+                            'global_map_renderer'],
+            systems_unpaused=['back_stars', 'mid_stars', 'sun1', 'sun2',
+                              'planet1', 'planet2','grid_camera', 'map_grid',
+                              'radar_renderer', 'rotate_renderer',],
+            screenmanager_screen='map'
+            )
+        self.gameworld.add_state(
+            state_name='worldmap', 
+            systems_added=['global_camera', 'global_map_renderer',
+                           'world_grid'],
+            systems_removed=['player','back_stars', 'mid_stars', 'sun1',
+                             'sun2', 'planet1', 'planet2', 'particle_renderer',
+                             'rotate_renderer', 'shield_renderer',
+                             'grid_camera', 'map_grid', 'radar_renderer',],
+            systems_paused=['emitters', 'particles',
+                            'particle_renderer', 'steering', 'cymunk_physics',
+                            'lifespan', 'projectiles', 'projectile_weapons',
+                            'combat_stats', 'steering_ai', 'weapon_ai',
+                            'back_stars', 'mid_stars', 'sun1', 'sun2',
+                            'planet1', 'planet2','grid_camera', 'map_grid',
+                            'radar_renderer', 'rotate_renderer'],
+            systems_unpaused=['global_map_renderer'],
+            on_change_callback=self.load_global_map,
+            screenmanager_screen='jump'
+            )
 
-    def set_state(self):
-        self.gameworld.state = 'main'
+    def load_global_map(self, current_state, previous_state):
+        self.ids.global_map.draw_map(self.world_seed)
+
+
+    def set_state(self, state):
+        self.gameworld.state = state
 
 class DebugPanel(Widget):
     fps = StringProperty(None)

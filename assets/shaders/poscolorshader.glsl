@@ -18,7 +18,7 @@ uniform vec4       color;
 uniform float      opacity;
 
 void main (void) {
-  frag_color = v_color*color;
+  frag_color = v_color*color*vec4(1., 1., 1., opacity);
   vec4 pos = vec4(pos.xy, 0.0, 1.0);
   gl_Position = projection_mat * modelview_mat * pos;
 
