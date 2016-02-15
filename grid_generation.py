@@ -28,4 +28,4 @@ def generate_grid(border_width, line_width, line_fade_width, size,
         line_width, cell_size, line_fade_width,
         cells, outer_color, inner_color, outer_color[0:3] + [0]
         )
-    return board_pos, grid_data
+    return board_pos, grid_data, cell_size

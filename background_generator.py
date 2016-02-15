@@ -95,6 +95,9 @@ class WorldSeed(object):
     def get_global_map_seed(self):
         return self.world_seed + '_global_map'
 
+    def get_global_map_planet_seed(self):
+        return self.world_seed + '_global_map_planet_seed'
+
 
 
 class PlanetModel(object):
@@ -118,7 +121,7 @@ class BackgroundGenerator(object):
         self.star_names = star_names
         self.planet_names = planet_names = {}
         planet_names['small_planets'] = self.generate_planets(
-            100., 100., 100., 10, 
+            100., 75., 125., 10, 
             'small_planet','triangulated_models/circle_100_10.kem'
             )
         planet_names['medium_small_planets'] = self.generate_planets(
@@ -219,6 +222,21 @@ class BackgroundGenerator(object):
             star_data['vert_count'], star_data['ind_count'], model_name, 
             indices=star_data['indices'], vertices=star_data['vertices'],
             do_copy=do_copy)
+
+    def draW_planet_simple(self, model_name, radius, color1, color2):
+        divisions = randint(6, 12)
+        even_div = 1.0 / divisions
+        colors = gen_color_palette(divisions, color1, 
+                                   color2, uniform(even_div, 2*even_div),
+                                   randint(1, 4),
+                                   level_choices=[(2, 1), (3, 1), (4, 2),
+                                                  (5, 2)],
+                                   )
+        self.populate_model_with_noise(model_name, 16, uniform(.3, .7),
+                                       uniform(.004, .009),
+                                       (uniform(radius, radius*4),
+                                        uniform(radius, radius*4)),
+                                       radius, colors)
 
     def draw_planet(self, model_name, cloud_name, radius, color1, color2):
         divisions = randint(6, 12)

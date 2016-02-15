@@ -35,7 +35,8 @@ class YACSGame(Widget):
             'asteroids', 'steering_ai', 'weapon_ai', 'shields',
             'shield_renderer', 'map_grid', 'grid_camera', 'radar_renderer',
             'radar_color', 'world_grid', 'global_map', 'global_camera',
-            'world_map', 'global_map_renderer'],
+            'world_map', 'global_map_renderer', 'global_map_renderer2',
+            'global_map_planet_renderer'],
             callback=self.init_game
             )
         self.background_generator = BackgroundGenerator(self.gameworld)
@@ -51,20 +52,15 @@ class YACSGame(Widget):
         self.background_generator.generate_map(self.world_seed,
                                                global_map.world_x,
                                                global_map.world_y)
+        global_map.add_zone_to_visited((global_map.world_x,
+                                        global_map.world_y))
         self.ids.player.load_player()
         self.load_music()
         self.setup_grid()
-        global_map.setup_grid()
-        global_map.setup_map_stars(self.background_generator)
-        global_map.setup_zones(self.world_seed)
+        global_map.setup(self.world_seed, self.background_generator)
         self.create_minimap_grid()
+        self.gameworld.sound_manager.music_volume = 0.
         #self.load_enemy_ship()
-
-    def increment_world_y(self, val):
-        self.world_y += val
-
-    def increment_world_x(self, val):
-        self.world_x += val
 
     def setup_grid(self):
         outer_color = [150, 0, 100, 100]
@@ -72,9 +68,12 @@ class YACSGame(Widget):
         grid_size = 17
         actual_size = (2500, 2500)
         actual_pos = (0., 0.)
-        grid_offset, grid_data = generate_grid(0., 10., 1., actual_size,
-                                               actual_pos, grid_size,
-                                               outer_color, inner_color)
+        grid_offset, grid_data, cell_size = generate_grid(0., 10., 1.,
+                                                          actual_size,
+                                                          actual_pos,
+                                                          grid_size,
+                                                          outer_color,
+                                                          inner_color)
         self.grid_model = load_grid(self.gameworld, grid_data, 'mini_map_grid')
         self.grid_offset = grid_offset
 
@@ -442,13 +441,15 @@ class YACSGame(Widget):
         self.gameworld.add_state(
             state_name='main', 
             systems_added=['player', 'back_stars', 'mid_stars', 'sun1', 'sun2',
-                           'planet1', 'particle_renderer',
-                           'rotate_renderer', 'shield_renderer', 'planet2', ],
+                           'planet1', 'rotate_renderer', 'shield_renderer',
+                           'planet2', 'particle_renderer'],
             systems_removed=['grid_camera', 'map_grid', 'radar_renderer',
                              'world_grid', 'global_camera',
-                             'global_map_renderer'],
+                             'global_map_renderer', 'global_map_renderer2',
+                             'global_map_planet_renderer',],
             systems_paused=['grid_camera', 'map_grid', 'radar_renderer',
-                            'global_map_renderer'],
+                            'global_map_renderer', 'global_map_renderer2',
+                            'global_map_planet_renderer',],
             systems_unpaused=['back_stars', 'mid_stars', 'sun1', 'sun2',
                               'planet1', 'planet2', 'emitters', 'particles',
                               'particle_renderer', 'steering',
@@ -464,12 +465,14 @@ class YACSGame(Widget):
                            'rotate_renderer', 'shield_renderer', 'grid_camera',
                            'map_grid', 'radar_renderer'],
             systems_removed=['player', 'world_grid', 'global_camera',
-                             'global_map_renderer'],
+                             'global_map_renderer', 'global_map_renderer2',
+                             'global_map_planet_renderer',],
             systems_paused=['emitters', 'particles', 'steering',
                             'cymunk_physics', 'lifespan', 'projectiles',
                             'projectile_weapons',
                             'combat_stats', 'steering_ai', 'weapon_ai',
-                            'global_map_renderer'],
+                            'global_map_renderer', 'global_map_renderer2',
+                            'global_map_planet_renderer',],
             systems_unpaused=['back_stars', 'mid_stars', 'sun1', 'sun2',
                               'planet1', 'planet2','grid_camera', 'map_grid',
                               'radar_renderer', 'rotate_renderer',],
@@ -477,7 +480,8 @@ class YACSGame(Widget):
             )
         self.gameworld.add_state(
             state_name='worldmap', 
-            systems_added=['global_camera', 'global_map_renderer',
+            systems_added=['global_camera', 'global_map_renderer2',
+                           'global_map_renderer', 'global_map_planet_renderer',
                            'world_grid'],
             systems_removed=['player','back_stars', 'mid_stars', 'sun1',
                              'sun2', 'planet1', 'planet2', 'particle_renderer',
@@ -490,13 +494,14 @@ class YACSGame(Widget):
                             'back_stars', 'mid_stars', 'sun1', 'sun2',
                             'planet1', 'planet2','grid_camera', 'map_grid',
                             'radar_renderer', 'rotate_renderer'],
-            systems_unpaused=['global_map_renderer'],
+            systems_unpaused=['global_map_renderer', 'global_map_renderer2',
+                              'global_map_planet_renderer',],
             on_change_callback=self.load_global_map,
             screenmanager_screen='jump'
             )
 
     def load_global_map(self, current_state, previous_state):
-        self.ids.global_map.draw_map(self.world_seed)
+        self.ids.global_map.draw_map()
 
 
     def set_state(self, state):

@@ -19,10 +19,10 @@ YACSGame:
     GameWorld:
         id: gameworld
         gamescreenmanager: gamescreenmanager
-        size_of_gameworld: 500*1024
-        system_count: 32
+        size_of_gameworld: 600*1024
+        system_count: 34
         zones: {'general': 10000, 'particles': 10000, 'ships': 50, 'projectiles': 5000}
-        model_format_allocations: {'vertex_format_2f4ub': (10000*1024, 10000*1024), 'vertex_format_4f': (10000*1024, 10000*1024), 'vertex_format_9f4ub': (10000*1024, 10000*1024)}
+        model_format_allocations: {'vertex_format_2f4ub': (50000*1024, 50000*1024), 'vertex_format_4f': (10000*1024, 10000*1024), 'vertex_format_9f4ub': (10000*1024, 10000*1024)}
         PositionSystem2D:
             system_id: 'position'
             gameworld: gameworld
@@ -149,7 +149,10 @@ YACSGame:
             pos: root.pos
             currentmap: world_map
             camera_scale: 1.
-            render_system_order: ['global_map_renderer', 'world_grid']
+            do_touch_zoom: True
+            scale_min: .2
+            scale_max: 5.
+            render_system_order: ['global_map_renderer2', 'global_map_planet_renderer', 'global_map_renderer', 'world_grid']
 
         PolyRenderer:
             gameworld: gameworld
@@ -314,6 +317,29 @@ YACSGame:
             size_of_batches: 768
             system_names: ['global_map_renderer', 'position']
             frame_count: 1
+        PolyRenderer:
+            gameworld: gameworld
+            shader_source: get_asset_path('assets', 'shaders', 'poscolorshader.glsl')
+            system_id: 'global_map_planet_renderer'
+            zones: ['general']
+            static_rendering: True
+            force_update: True
+            max_batches: 10
+            gameview: 'global_camera'
+            size_of_batches: 768
+            system_names: ['global_map_planet_renderer', 'position']
+            frame_count: 1
+        RotateColorRenderer:
+            zones: ['general']
+            gameworld: gameworld
+            max_batches: 10
+            frame_count: 1
+            system_id: 'global_map_renderer2'
+            static_rendering: True
+            force_update: True
+            gameview: 'global_camera'
+            system_names: ['global_map_renderer2', 'position', 'rotate', 'color']
+            shader_source: get_asset_path('assets', 'shaders', 'positionrotatecolorshader.glsl')
         GlobalMapSystem:
             gameworld: gameworld
             zones: ['general']
@@ -423,37 +449,11 @@ YACSGame:
 <MainScreen>:
     name: 'main'
     FloatLayout:
-        Button: 
-            text: 'Gen'
-            pos_hint: {'x': .9, 'y': .05}
-            size_hint: (.1, .1)
-            on_release: app.root.reload()
-        Button:
-            text: 'Clear'
-            pos_hint: {'x': .9, 'y': .175}
-            size_hint: (.1, .1)
-            on_release: app.root.clear()
         Button:
             text: 'Minimap'
             pos_hint: {'x': .025, 'y': .9}
             size_hint: (.15, .085)
             on_release: app.root.set_state('minimap')
-        BoxLayout:
-            orientation: 'horizontal'
-            size_hint: (.3, .1)
-            pos_hint: {'x': .7, 'y': .3}
-            Button:
-                text: 'Up'
-                on_release: app.root.increment_world_y(1)
-            Button:
-                text: 'Down'
-                on_release: app.root.increment_world_y(-1)
-            Button:
-                text: 'Right'
-                on_release: app.root.increment_world_x(1)
-            Button:
-                text: 'Left'
-                on_release: app.root.increment_world_x(-1)
         DebugPanel:
             size_hint: (.15, .1)
             pos_hint: {'x': .005, 'y': .025}

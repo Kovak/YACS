@@ -317,6 +317,23 @@ def draw_colored_layered_grid(spacing, line_width, fade_width, cells, color,
     return {'indices': indices, 'vertices': all_verts, 
         'vert_count': vert_count, 'ind_count': ind_count}
 
+
+def draw_irregular_polygon(points, color):
+    center = (0., 0.)
+    vertices = {}
+    vertices[0] = {'pos': center, 'v_color': color}
+    indices = []
+    count = len(points)
+    for index, point in enumerate(points):
+        vertices[index+1] = {'pos': point, 'v_color': color}
+        if index < count:
+            indices.extend([0, index+1, index+2])
+        else:
+            indices.extend([index+1, 0, 1])
+    return {'indices': indices, 'vertices': vertices, 
+            'vert_count': len(vertices), 'ind_count': len(indices)}
+
+
 def draw_colored_grid(pos, spacing, width, cells, color, middle_color):
     total_gap = width+spacing
     total_size = total_gap*cells
