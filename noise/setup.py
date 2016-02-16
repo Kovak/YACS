@@ -39,7 +39,7 @@ check_for_removal = [
 def build_ext(ext_name, files, 
 	include_dirs=[include_dir]):
     return Extension(ext_name, files, include_dirs,
-        extra_compile_args=[cstdarg, '-ffast-math',],
+        extra_compile_args=['-ffast-math',],
         language="c++")
 
 extensions = []

@@ -60,15 +60,70 @@ class ZoneInfo(object):
         self.color1 = get_color1_choice_from_val(color1_val)
         self.color2 = get_color2_choice_from_val(color2_val)
         self.star_count = int(world_seed.max_stars * star_val)
-        self.small_planets = iweighted_choice([(0, 4), (1, 3), (2, 2), (3, 1),
+        self.tiny_planets = iweighted_choice([(0, 4), (1, 3), (2, 2), (3, 1),
                                                (4, 1)])
-        self.medium_small_planets = iweighted_choice([(1, 2), (2, 1), (0, 3)])
-        self.medium_large_planets = iweighted_choice([(1, 2), (2, 1), (0, 10)])
+        self.small_planets = iweighted_choice([(1, 2), (2, 1), (0, 3)])
+        self.medium_planets = iweighted_choice([(1, 2), (2, 1), (0, 10)])
         self.large_planets = iweighted_choice([(1, 1), (0, 13)])
-        self.small_suns = iweighted_choice([(2, 1), (1, 3), (0, 6)])
-        self.medium_small_suns = iweighted_choice([(1, 1), (0, 6)])
-        self.medium_large_suns = iweighted_choice([(1, 1), (0, 9)])
+        self.tiny_suns = iweighted_choice([(2, 1), (1, 3), (0, 6)])
+        self.small_suns = iweighted_choice([(1, 1), (0, 6)])
+        self.medium_suns = iweighted_choice([(1, 1), (0, 9)])
         self.large_suns = iweighted_choice([(1, 1), (0, 15)])
+        self.planet_infos = planet_infos = {}
+        planet_infos['tiny'] = sm_planet_templates = {}
+        planet_infos['small'] = ms_planet_templates = {}
+        planet_infos['medium'] = ml_planet_templates = {}
+        planet_infos['large'] = lg_planet_templates = {}
+        for x in range(self.tiny_planets):
+            sm_planet_templates[x] = PlanetInfo(uniform(.50, 125.), 'tiny')
+        for x in range(self.small_planets):
+            ms_planet_templates[x] = PlanetInfo(uniform(175., 350.),
+                                                'small')
+        for x in range(self.medium_planets):
+            ml_planet_templates[x] = PlanetInfo(uniform(375., 600.),
+                                                'medium')
+        for x in range(self.large_planets):
+            lg_planet_templates[x] = PlanetInfo(uniform(650., 850.), 'large')
+
+
+class PlanetInfo(object):
+
+    def __init__(self, radius, size):
+        self.size = size
+        self.radius = radius
+        self.color1 = color1 = choice(color_choices)
+        self.color2 = color2 = choice(color_choices)
+        self.planet_divisions = planet_divisions = randint(6, 12)
+        even_div = 1.0 / planet_divisions
+        self.planet_palette = gen_color_palette(planet_divisions, color1,
+                                                color2, 
+                                                uniform(even_div, 2*even_div),
+                                                randint(1, 4),
+                                                level_choices=[(2, 1), (3, 1),
+                                                               (4, 2), (5, 2)])
+        self.cloud_low = cloud_low = uniform(.2, .5)
+        self.cloud_high = cloud_high = uniform(.6, .9)
+        self.cloud_divisions = cloud_divisions = randint(4, 6)
+        even_div = 1.0 / cloud_divisions
+        self.cloud_palette = gen_color_palette(cloud_divisions, color1, color2, 
+                                               uniform(even_div, 2*even_div),
+                                               1,
+                                               level_choices=[(1, 1), (2, 2),
+                                                              (3, 1), (4, 1),
+                                                              (5, 1)],
+                                               do_alpha=True, 
+                                               alpha_low_cutoff=cloud_low, 
+                                               alpha_high_cutoff=cloud_high,
+                                               alpha_range=(0, 200))
+        self.planet_noise = NoiseInfo(16, uniform(.3, .7), uniform(.004, .009))
+        self.cloud_noise = NoiseInfo(8, uniform(.2, .4), uniform(.001, .004))
+        self.planet_offset = (uniform(-50000., 50000.),
+                              uniform(-50000., 50000.))
+        self.cloud_offset = (uniform(-50000., 50000.),
+                             uniform(-50000., 50000.))
+        
+
+
  
 class WorldSeed(object):
 
@@ -120,17 +175,17 @@ class BackgroundGenerator(object):
                                          10, 10, 20, 30)
         self.star_names = star_names
         self.planet_names = planet_names = {}
-        planet_names['small_planets'] = self.generate_planets(
+        planet_names['tiny_planets'] = self.generate_planets(
             100., 75., 125., 10, 
-            'small_planet','triangulated_models/circle_100_10.kem'
+            'tiny_planet','triangulated_models/circle_100_10.kem'
             )
-        planet_names['medium_small_planets'] = self.generate_planets(
+        planet_names['small_planets'] = self.generate_planets(
             200., 175., 350., 5,
-            'medium_small_planet', 'triangulated_models/circle_200_10.kem'
+            'small_planet', 'triangulated_models/circle_200_10.kem'
             )
-        planet_names['medium_large_planets'] = self.generate_planets(
+        planet_names['medium_planets'] = self.generate_planets(
             400., 375., 600., 5,
-            'medium_large_planet', 'triangulated_models/circle_400_30.kem'
+            'medium_planet', 'triangulated_models/circle_400_30.kem'
             )
         planet_names['large_planets'] = self.generate_planets(
             800., 650., 850., 5, 
@@ -223,7 +278,7 @@ class BackgroundGenerator(object):
             indices=star_data['indices'], vertices=star_data['vertices'],
             do_copy=do_copy)
 
-    def draW_planet_simple(self, model_name, radius, color1, color2):
+    def draw_planet_simple(self, model_name, radius, color1, color2):
         divisions = randint(6, 12)
         even_div = 1.0 / divisions
         colors = gen_color_palette(divisions, color1, 
@@ -343,13 +398,13 @@ class BackgroundGenerator(object):
                  sun_renderer=None,
                  do_stars=True,
                  max_color1_chance=.5, max_color2_chance=.25, 
-                 small_p_counts=[(1, 2), (2, 1), (0, 3)],
-                 medium_small_p_counts=[(1, 1), (2, 1), (0, 4)], 
-                 medium_large_p_counts=[(1, 1), (0, 10)], 
+                 tiny_p_counts=[(1, 2), (2, 1), (0, 3)],
+                 small_p_counts=[(1, 1), (2, 1), (0, 4)], 
+                 medium_p_counts=[(1, 1), (0, 10)], 
                  large_p_counts=[(1, 1), (0, 13)],
-                 small_sun_counts = [(1, 1), (0, 4)],
-                 medium_small_sun_counts = [(1, 1), (0, 5)],
-                 medium_large_sun_counts = [(1, 1), (0, 10)],
+                 tiny_sun_counts = [(1, 1), (0, 4)],
+                 small_sun_counts = [(1, 1), (0, 5)],
+                 medium_sun_counts = [(1, 1), (0, 10)],
                  large_sun_counts = [(0, 1)],
                  persistence=.3,
                  octaves=8,
@@ -385,9 +440,9 @@ class BackgroundGenerator(object):
         planet_register = self.planet_register
         if planet_renderer is not None:
             choice_pairs = [
-                (small_p_counts, planet_choices['small_planets']), 
-                (medium_small_p_counts, planet_choices['medium_small_planets']),
-                (medium_large_p_counts, planet_choices['medium_large_planets']),
+                (tiny_p_counts, planet_choices['tiny_planets']), 
+                (small_p_counts, planet_choices['small_planets']),
+                (medium_p_counts, planet_choices['medium_planets']),
                 (large_p_counts, planet_choices['large_planets'])
                 ]
             for counts, choices in choice_pairs:
@@ -414,11 +469,11 @@ class BackgroundGenerator(object):
                         planet_renderer])
         if sun_renderer is not None:
             choice_pairs = [
-                (small_sun_counts, planet_choices['small_planets']), 
-                (medium_small_sun_counts, 
-                    planet_choices['medium_small_planets']),
-                (medium_large_sun_counts, 
-                    planet_choices['medium_large_planets']),
+                (tiny_sun_counts, planet_choices['tiny_planets']), 
+                (small_sun_counts, 
+                    planet_choices['small_planets']),
+                (medium_sun_counts, 
+                    planet_choices['medium_planets']),
                 (large_sun_counts, planet_choices['large_planets'])
                 ]
             for counts, choices in choice_pairs:
@@ -447,28 +502,28 @@ class BackgroundGenerator(object):
         asteroid_count = zone_info.asteroid_count
         offset = zone_info.offset
         map_size = world_seed.map_size
+        tiny_p_count = zone_info.tiny_planets
+        tiny_1 = tiny_p_count // 2
+        tiny_2 = tiny_p_count - tiny_1
         small_p_count = zone_info.small_planets
         small_1 = small_p_count // 2
         small_2 = small_p_count - small_1
-        medium_small_p_count = zone_info.medium_small_planets
-        medium_small_1 = medium_small_p_count // 2
-        medium_small_2 = medium_small_p_count - medium_small_1
-        medium_large_p_count = zone_info.medium_large_planets
-        medium_large_1 = medium_large_p_count // 2
-        medium_large_2 = medium_large_p_count - medium_large_1
+        medium_p_count = zone_info.medium_planets
+        medium_1 = medium_p_count // 2
+        medium_2 = medium_p_count - medium_1
+        tiny_sun_count = zone_info.tiny_suns
+        tiny_sun_1 = tiny_sun_count // 2
+        tiny_sun_2 = tiny_sun_count - tiny_sun_1
         small_sun_count = zone_info.small_suns
         small_sun_1 = small_sun_count // 2
-        small_sun_2 = small_sun_count - small_sun_1
-        medium_small_sun_count = zone_info.medium_small_suns
-        medium_small_sun_1 = medium_small_sun_count // 2
-        medium_small_sun_2 = medium_small_sun_count - medium_small_sun_1       
-        medium_large_sun_count = zone_info.medium_large_suns
-        medium_large_sun_1 = medium_large_sun_count // 2 
-        medium_large_sun_2 = medium_large_sun_count - medium_large_sun_1
+        small_sun_2 = small_sun_count - small_sun_1       
+        medium_sun_count = zone_info.medium_suns
+        medium_sun_1 = medium_sun_count // 2 
+        medium_sun_2 = medium_sun_count - medium_sun_1
         large_sun_count = zone_info.large_suns
-        print(zone_info.small_suns, zone_info.medium_small_suns,
-              zone_info.medium_large_suns, zone_info.large_suns)
-        print(small_sun_1, small_sun_2)
+        print(zone_info.tiny_suns, zone_info.small_suns,
+              zone_info.medium_suns, zone_info.large_suns)
+        print(tiny_sun_1, tiny_sun_2)
 
         self.draw_map(
             map_size, offset,
@@ -481,32 +536,32 @@ class BackgroundGenerator(object):
         used = self.draw_map(
             map_size, offset, int(star_count*.1), color1, color2, 
             sun_renderer='sun1', used_planet_names=used,
+            tiny_sun_counts = [(tiny_sun_1, 1)],
             small_sun_counts = [(small_sun_1, 1)],
-            medium_small_sun_counts = [(medium_small_sun_1, 1)],
-            medium_large_sun_counts = [(medium_large_sun_1, 1)],
+            medium_sun_counts = [(medium_sun_1, 1)],
             large_sun_counts = [(large_sun_count, 1)],
             )
         used = self.draw_map(
             map_size, offset, int(star_count*.1), color1, color2, 
             sun_renderer='sun2', used_planet_names=used,
+            tiny_sun_counts = [(tiny_sun_2, 1)],
             small_sun_counts = [(small_sun_2, 1)],
-            medium_small_sun_counts = [(medium_small_sun_2, 1)],
-            medium_large_sun_counts = [(medium_large_sun_2, 1)],
+            medium_sun_counts = [(medium_sun_2, 1)],
             large_sun_counts = [(0, 1)],)
         used = self.draw_map(
             map_size, offset,
             0, color1, color2, planet_renderer='planet1', 
-            small_p_counts=[(small_1, 1)],
-            medium_small_p_counts=[(medium_small_1, 1)], 
-            medium_large_p_counts=[(medium_large_1, 1)], 
+            tiny_p_counts=[(tiny_1, 1)],
+            small_p_counts=[(small_1, 1)], 
+            medium_p_counts=[(medium_1, 1)], 
             large_p_counts=[(0, 1)],
             used_planet_names=used)
         used = self.draw_map(
             map_size, offset,
             0, color1, color2, planet_renderer='planet2',
-            small_p_counts=[(small_2, 1)],
-            medium_small_p_counts=[(medium_small_2, 1)], 
-            medium_large_p_counts=[(medium_large_2, 1)], 
+            tiny_p_counts=[(tiny_2, 1)],
+            small_p_counts=[(small_2, 1)], 
+            medium_p_counts=[(medium_2, 1)], 
             large_p_counts=[(zone_info.large_planets, 1)],
             used_planet_names=used)
         asteroid_system = self.gameworld.system_manager['asteroids']

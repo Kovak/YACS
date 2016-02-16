@@ -55,6 +55,7 @@ YACSGame:
             system_id: 'camera_stars1'
             camera_pos: (camera_top.camera_pos[0])*.4, (camera_top.camera_pos[1])*.4
             touch_pass_through: True
+            camera_scale: root.zoom_level
             do_scroll_lock: False
             window_size: root.size
             size: root.size
@@ -66,6 +67,7 @@ YACSGame:
             do_scroll_lock: False
             camera_pos: (camera_top.camera_pos[0])*.5, (camera_top.camera_pos[1])*.5
             touch_pass_through: True
+            camera_scale: root.zoom_level
             size: root.size
         GameView:
             gameworld: gameworld
@@ -74,6 +76,7 @@ YACSGame:
             window_size: root.size
             camera_pos: (camera_top.camera_pos[0])*.66, (camera_top.camera_pos[1])*.66
             touch_pass_through: True
+            camera_scale: root.zoom_level
             do_scroll_lock: False
             size: root.size
         GameView:
@@ -81,6 +84,7 @@ YACSGame:
             id: camera_sun2
             system_id: 'camera_sun2'
             window_size: root.size
+            camera_scale: root.zoom_level
             camera_pos: (camera_top.camera_pos[0])*.75, (camera_top.camera_pos[1])*.75
             touch_pass_through: True
             do_scroll_lock: False
@@ -104,6 +108,7 @@ YACSGame:
             window_size: root.size
             camera_pos: (camera_top.camera_pos[0])*.83, (camera_top.camera_pos[1])*.83
             do_scroll_lock: False
+            camera_scale: root.zoom_level
             touch_pass_through: True
             size: root.size
         GameView:
@@ -117,6 +122,7 @@ YACSGame:
             system_id: 'camera_planet2'
             size: root.size
             currentmap: map
+            camera_scale: root.zoom_level
             window_size: root.size
             render_system_order: ['shield_renderer', 'rotate_renderer','particle_renderer', 'planet2']
         GameView:
@@ -129,7 +135,7 @@ YACSGame:
             window_size: root.width * .6, root.height * .6
             pos: root.width * .2, root.height *.3
             currentmap: g_map
-            camera_scale: 4.
+            camera_scale: 4. * root.zoom_level
             render_system_order: ['radar_renderer', 'map_grid']
             canvas.before:
                 ScissorPush:
@@ -148,7 +154,7 @@ YACSGame:
             window_size: root.size
             pos: root.pos
             currentmap: world_map
-            camera_scale: 1.
+            camera_scale: root.zoom_level
             do_touch_zoom: True
             scale_min: .2
             scale_max: 5.

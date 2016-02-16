@@ -89,35 +89,35 @@ class GlobalMapSystem(GameSystem):
         background_generator = self.background_generator
         planets = {}
         model_manager = self.gameworld.model_manager
-        planets['small'] = background_generator.generate_planets(
+        planets['tiny'] = background_generator.generate_planets(
                                     100, 100, 100, 40,
-                                    'small_map_planet',
+                                    'tiny_map_planet',
                                     'triangulated_models/circle_100_10.kem',
                                     )
-        for model_name in planets['small']:
-            background_generator.draW_planet_simple(model_name, 150,
+        for model_name in planets['tiny']:
+            background_generator.draw_planet_simple(model_name, 150,
                                                     choice(color_choices),
                                                     choice(color_choices))
             model = model_manager.models[model_name]
             model.mult_all_vertex_attribute('pos', uniform(.04, .06))
-        planets['medium_small'] = background_generator.generate_planets(
+        planets['small'] = background_generator.generate_planets(
                                     100, 100, 100, 30,
-                                    'medium_small_map_planet',
+                                    'small_map_planet',
                                     'triangulated_models/circle_100_10.kem',
                                     )
-        for model_name in planets['medium_small']:
-            background_generator.draW_planet_simple(model_name, 150,
+        for model_name in planets['small']:
+            background_generator.draw_planet_simple(model_name, 150,
                                                     choice(color_choices),
                                                     choice(color_choices))
             model = model_manager.models[model_name]
             model.mult_all_vertex_attribute('pos', uniform(.06, .08))
-        planets['medium_large'] = background_generator.generate_planets(
+        planets['medium'] = background_generator.generate_planets(
                                     100, 100, 100, 30,
-                                    'medium_large_map_planet',
+                                    'medium_map_planet',
                                     'triangulated_models/circle_100_10.kem',
                                     )
-        for model_name in planets['medium_large']:
-            background_generator.draW_planet_simple(model_name, 150,
+        for model_name in planets['medium']:
+            background_generator.draw_planet_simple(model_name, 150,
                                                     choice(color_choices),
                                                     choice(color_choices))
             model = model_manager.models[model_name]
@@ -128,7 +128,7 @@ class GlobalMapSystem(GameSystem):
                                     'triangulated_models/circle_100_10.kem',
                                     )
         for model_name in planets['large']:
-            background_generator.draW_planet_simple(model_name, 150,
+            background_generator.draw_planet_simple(model_name, 150,
                                                     choice(color_choices),
                                                     choice(color_choices))
             model = model_manager.models[model_name]
@@ -141,9 +141,9 @@ class GlobalMapSystem(GameSystem):
         background_generator = self.background_generator
         generate_star = background_generator.generate_star
         generate_offset_star = background_generator.generate_offset_star
-        stars['small_star'] = generate_star('small_map_star', 4, 'blue', 3.5)
-        stars['med_small_star'] = generate_star('med_small_map_star', 34,
-                                                'blue', 4.5)
+        stars['tiny_star'] = generate_star('tiny_map_star', 4, 'blue', 3.5)
+        stars['small_star'] = generate_star('small_map_star', 34,
+                                            'blue', 4.5)
         stars['medium_star'] = generate_offset_star('medium_map_star', 16,
                                                     'blue', 4.0, 5.0)
         stars['large_star'] = generate_offset_star('large_star', 24,
@@ -200,14 +200,14 @@ class GlobalMapSystem(GameSystem):
         draw_planet = self.draw_planet
         get_bounds_for_cell = self.get_bounds_for_cell
         star_names = self.star_names
-        small_star_name = star_names['small_star']
-        med_small_name = star_names['med_small_star']
+        tiny_star_name = star_names['tiny_star']
+        small_name = star_names['small_star']
         med_star_name = star_names['medium_star']
         large_star_name = star_names['large_star']
         cell_size = self.cell_size
-        small_planet_choices = self.planets['small']
-        medium_small_choices = self.planets['medium_small']
-        medium_large_choices = self.planets['medium_large']
+        tiny_planet_choices = self.planets['tiny']
+        small_choices = self.planets['small']
+        medium_choices = self.planets['medium']
         large_choices = self.planets['large']
         visited = self.visited
         for zone_key in zones:
@@ -220,13 +220,13 @@ class GlobalMapSystem(GameSystem):
                 y0 += h * .2
                 x1 -= w * .2
                 y1 -= h * .2
+                for x in range(zone.tiny_suns):
+                    draw_star((uniform(x0, x1), uniform(y0, y1)),
+                              tiny_star_name)
                 for x in range(zone.small_suns):
                     draw_star((uniform(x0, x1), uniform(y0, y1)),
-                              small_star_name)
-                for x in range(zone.medium_small_suns):
-                    draw_star((uniform(x0, x1), uniform(y0, y1)),
-                              med_small_name)
-                for x in range(zone.medium_large_suns):
+                              small_name)
+                for x in range(zone.medium_suns):
                     draw_star((uniform(x0, x1), uniform(y0, y1)),
                               med_star_name)
                 for x in range(zone.large_suns):
@@ -235,15 +235,15 @@ class GlobalMapSystem(GameSystem):
                 for x in range(int(zone.asteroid_count//30)):
                     draw_asteroid((uniform(x0, x1), uniform(y0, y1)),
                                   radians(uniform(0., 360.)))
+                for x in range(zone.tiny_planets):
+                    draw_planet((uniform(x0, x1), uniform(y0, y1)),
+                                choice(tiny_planet_choices))
                 for x in range(zone.small_planets):
                     draw_planet((uniform(x0, x1), uniform(y0, y1)),
-                                choice(small_planet_choices))
-                for x in range(zone.medium_small_planets):
+                                choice(small_choices))
+                for x in range(zone.medium_planets):
                     draw_planet((uniform(x0, x1), uniform(y0, y1)),
-                                choice(medium_small_choices))
-                for x in range(zone.medium_large_planets):
-                    draw_planet((uniform(x0, x1), uniform(y0, y1)),
-                                choice(medium_large_choices))
+                                choice(medium_choices))
                 for x in range(zone.large_planets):
                     draw_planet((uniform(x0, x1), uniform(y0, y1)),
                                 choice(large_choices))

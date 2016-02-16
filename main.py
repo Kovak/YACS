@@ -1,5 +1,5 @@
 import os
-os.environ["KIVY_AUDIO"] = "sdl2"
+# os.environ["KIVY_AUDIO"] = "sdl2"
 from kivy.app import App
 from kivy.uix.widget import Widget
 from kivy.clock import Clock
@@ -22,6 +22,7 @@ from grid_generation import load_grid, generate_grid
 class YACSGame(Widget):
     player_entity = NumericProperty(None, allownone=True)
     is_clearing = BooleanProperty(False)
+    zoom_level = NumericProperty(.5)
 
     def __init__(self, **kwargs):
         super(YACSGame, self).__init__(**kwargs)
@@ -46,20 +47,24 @@ class YACSGame(Widget):
         self.setup_states()
         self.ids.shields.register_collision()
         self.load_assets()
-        global_map = self.ids.global_map
-        self.set_state('main')
         self.background_generator.generate()
+        self.setup_grid()
+        self.load_music()
+        self.gameworld.sound_manager.music_volume = 0.
+        self.ids.global_map.setup(self.world_seed, self.background_generator)
+        self.set_state('main')
+        
+
+    def load_level(self):
+        global_map = self.ids.global_map
         self.background_generator.generate_map(self.world_seed,
                                                global_map.world_x,
                                                global_map.world_y)
         global_map.add_zone_to_visited((global_map.world_x,
                                         global_map.world_y))
         self.ids.player.load_player()
-        self.load_music()
-        self.setup_grid()
-        global_map.setup(self.world_seed, self.background_generator)
+        
         self.create_minimap_grid()
-        self.gameworld.sound_manager.music_volume = 0.
         #self.load_enemy_ship()
 
     def setup_grid(self):
@@ -413,14 +418,6 @@ class YACSGame(Widget):
         self.load_ships(ship_collision_type)
 
 
-    def reload(self):
-        print(self.world_x, self.world_y)
-        self.create_minimap_grid()
-        self.background_generator.generate_map(self.world_seed, self.world_x,
-                                               self.world_y)
-        self.ids.player.load_player()
-        self.load_enemy_ship()
-
     def load_enemy_ship(self):
         ship_system = self.gameworld.system_manager['ship_system']
         ship_id = ship_system.spawn_ship('ship1', False, (1600, 1600.))
@@ -456,7 +453,8 @@ class YACSGame(Widget):
                               'cymunk_physics', 'rotate_renderer',
                               'projectiles', 'projectile_weapons', 'lifespan',
                               'combat_stats', 'steering_ai', 'weapon_ai',],
-            screenmanager_screen='main'
+            screenmanager_screen='main',
+            on_change_callback=self.switch_to_main
             )
         self.gameworld.add_state(
             state_name='minimap', 
@@ -495,12 +493,18 @@ class YACSGame(Widget):
                             'planet1', 'planet2','grid_camera', 'map_grid',
                             'radar_renderer', 'rotate_renderer'],
             systems_unpaused=['global_map_renderer', 'global_map_renderer2',
-                              'global_map_planet_renderer',],
+                              'global_map_planet_renderer', 'global_camera'],
             on_change_callback=self.load_global_map,
             screenmanager_screen='jump'
             )
 
+    def switch_to_main(self, current_state, previous_state):
+        if previous_state != 'minimap':
+            self.clear()
+            self.load_level()
+
     def load_global_map(self, current_state, previous_state):
+        self.clear()
         self.ids.global_map.draw_map()
 
 
